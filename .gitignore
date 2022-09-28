@@ -1,0 +1,8 @@
+**__PYCACHE__
+**dist
+**build
+**.egg-info
+**.json
+**.log
+**_temp/
+**todo.txt

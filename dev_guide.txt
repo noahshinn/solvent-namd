@@ -1,0 +1,6 @@
+STATUS
+  - DEV: breaking code
+  - NOT TESTED: implemented, not tested
+  - FAILS TESTS: tested, but fails tests
+  - FINISHED: passes tests, optimizations not included
+  - PRODUCTION: ready for production
