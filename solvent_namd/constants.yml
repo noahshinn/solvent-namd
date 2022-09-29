@@ -1,0 +1,5 @@
+instance:
+  batch_size: 1
+  ntraj: 500
+  prop_duration: 1000000
+  delta_t: 0.5
