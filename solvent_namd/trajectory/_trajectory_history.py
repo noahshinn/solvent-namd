@@ -5,7 +5,7 @@ STATUS: DEV
 
 import warnings
 
-from solvent_dynamics.trajectory import Snapshot
+from solvent_namd.trajectory import Snapshot
 from typing import List, Optional, NamedTuple
 
 

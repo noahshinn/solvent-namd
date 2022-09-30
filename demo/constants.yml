@@ -1,0 +1,13 @@
+# FIXME: model, init_cond
+instance:
+  ncores: 16
+  model: ...
+  ntraj: 500
+  prop_duration: 1000000
+  delta_t: 0.5
+  natoms: 51
+  nstates: 3
+  init_cond: ...
+  log_dir: cyclopropenone-15-waters-namd
+  model_name: "e3nn water cluster model"
+  description: "Dynamics for cyclopropenone in 15 explicit water molecules."

@@ -4,19 +4,20 @@ STATUS: DEV
 """
 
 import sys
+import yaml
+from pathlib import Path
 
 from solvent_namd import NAMD
 
+
+# input file
 assert len(sys.argv) == 2
 _INPUT_FILE = sys.argv[1]
 
-**constants = rd_input(_INPUT_FILE) # type: ignore
+# load yaml file to python dict
+constants: dict = yaml.safe_load(Path(_INPUT_FILE).read_text())['instance']
 
+namd = NAMD.deserialize(constants)
+namd.run()
 
-def main() -> None:
-    namd = NAMD(**constants) # type: ignore
-    namd.run()
-
-
-if __name__ == '__main__':
-    main()
+print('finished!')

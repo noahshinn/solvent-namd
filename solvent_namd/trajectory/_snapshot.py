@@ -1,6 +1,6 @@
 import torch
 
-from solvent_dynamics import computer
+from solvent_namd import computer
 
 from typing import Dict, List, Optional
 
