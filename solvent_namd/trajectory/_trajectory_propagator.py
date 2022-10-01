@@ -9,7 +9,7 @@ from torch_geometric.data.data import Data
 from solvent_namd import computer
 from solvent_namd.trajectory import TrajectoryHistory, Snapshot
 
-from solvent_namd.logger import Logger
+from solvent_namd.logger import TrajLogger
 from typing import Dict, NamedTuple
 
 
@@ -21,7 +21,7 @@ class TerminationStatus(NamedTuple):
 class TrajectoryPropagator:
     def __init__(
             self,
-            logger: Logger,
+            logger: TrajLogger,
             model: torch.nn.Module,
             init_state: int,
             nstates: int,
@@ -103,7 +103,7 @@ class TrajectoryPropagator:
         self._isc_e_thresh = isc_e_thresh
         self._max_hop = max_hop
 
-        self._kinetic_energy = torch.Tensor(0.0)
+        self._kinetic_energy = torch.tensor(0.0)
 
         self._delta_t = delta_t
 
@@ -118,6 +118,19 @@ class TrajectoryPropagator:
         self._shift(mode='ELECTRONIC')
         self._surface_hopping()
         self._reset_velo()
+
+    def log_step(self) -> None:
+        """
+        Logs the current trajectory step.
+
+        """
+        self._logger.log_step(
+            coords=self._cur_coords,
+            velo=self._cur_velo,
+            forces=self._cur_forces,
+            energies=self._cur_energies,
+            state=self._cur_state
+        )
 
     def _nuclear(self) -> None:
         """
@@ -189,13 +202,6 @@ class TrajectoryPropagator:
         self._has_hopped = has_hopped 
         self._cur_state = state
  
-    def log_step(self) -> None:
-        """
-        Logs the current trajectory step.
-
-        """
-        NotImplemented()
-
     # FIXME: check termination somewhere
     def status(self) -> TerminationStatus:
         """
@@ -227,6 +233,7 @@ class TrajectoryPropagator:
             coords=self._cur_coords,
             velo=self._cur_velo
         )
+        NotImplemented()
 
     # FIXME: find better way to decode one-hot
     def _save_snapshot(self) -> None:

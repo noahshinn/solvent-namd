@@ -40,6 +40,7 @@ class NAMD():
             natoms: int,
             nstates: int,
             init_cond: torch.Tensor,
+            atom_types: torch.Tensor,
             log_dir: str = 'out',
             model_name: str = 'Unnamed',
             description: str = 'No description'
@@ -69,6 +70,7 @@ class NAMD():
         self._natoms = natoms
         self._nstates = nstates 
         self._init_cond = init_cond
+        self._atom_types = atom_types
         self._nsteps = int(prop_duration / delta_t)
         self._log_dir = log_dir
         self._model_name = model_name
@@ -108,6 +110,8 @@ class NAMD():
                 ntraj=self._ntraj,
                 delta_t=self._delta_t,
                 nsteps=self._nsteps,
+                atom_types=self._atom_types,
+                nstates=self._nstates
             )
             traj_lg.log_header()
             traj = trajectory.TrajectoryPropagator(*args, **kwargs) # type: ignore
