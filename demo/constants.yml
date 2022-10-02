@@ -1,13 +1,24 @@
-# FIXME: model, init_cond
 instance:
   ncores: 16
-  model: ...
   ntraj: 500
   prop_duration: 1000000
   delta_t: 0.5
   natoms: 51
   nstates: 3
-  init_cond: ...
-  log_dir: cyclopropenone-15-waters-namd
+  init_state: 1
+  one_hot_mass_key: {
+    7839147235533974352: 1.008,
+    7619408953831620358: 12.011,
+    -1882636517035687140: 15.999
+  }
+  one_hot_type_key: {
+    7839147235533974352: 'H',
+    7619408953831620358: 'C',
+    -1882636517035687140: 'O'
+  }
+  ic_e_thresh: 0.0 # not used
+  isc_e_thresh: 0.0 # not used
+  max_hop: 2 # not used
+  log_dir: "cyclopropenone-15-waters-namd"
   model_name: "e3nn water cluster model"
   description: "Dynamics for cyclopropenone in 15 explicit water molecules."

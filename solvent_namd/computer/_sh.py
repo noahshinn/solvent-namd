@@ -17,11 +17,11 @@ http://www.rsc.org/suppdata/c8/cp/c8cp02651c/c8cp02651c1.pdf
 
 import torch
 
-from solvent_dynamics.computer import (
+from solvent_namd.computer import (
     internal_conversion,
     intersystem_crossing,
-    is_valid_surface_hop,
-    adjust_velo_after_hop
+    # is_valid_surface_hop,
+    # adjust_velo_after_hop
 )
 
 from typing import NamedTuple

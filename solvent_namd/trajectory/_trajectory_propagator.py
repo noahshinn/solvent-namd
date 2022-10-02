@@ -10,7 +10,7 @@ from solvent_namd import computer
 from solvent_namd.trajectory import TrajectoryHistory, Snapshot
 
 from solvent_namd.logger import TrajLogger
-from typing import Dict, NamedTuple
+from typing import List, NamedTuple
 
 
 class TerminationStatus(NamedTuple):
@@ -25,19 +25,14 @@ class TrajectoryPropagator:
             model: torch.nn.Module,
             init_state: int,
             nstates: int,
-            state_mult: torch.Tensor,
             natoms: int,
-            mass: torch.Tensor,
             atom_types: torch.Tensor,
-            one_hot_key: Dict,
+            mass: torch.Tensor,
+            atom_strings: List[str],
             init_coords: torch.Tensor,
             init_velo: torch.Tensor,
-            init_forces: torch.Tensor,
-            init_energies: torch.Tensor,
-            init_a: torch.Tensor,
-            init_h: torch.Tensor,
-            init_d: torch.Tensor,
             delta_t: float,
+            nsteps: int,
             ic_e_thresh: float,
             isc_e_thresh: float,
             max_hop: int
@@ -75,29 +70,32 @@ class TrajectoryPropagator:
         self._model = model
 
         self._iter = 0
+        self._nsteps = nsteps
         self._traj = TrajectoryHistory()
-        self._mass = mass
         self._atom_types = atom_types
         self._natoms = natoms
         self._nstates = nstates
-        self._state_mult = state_mult
-        self._one_hot_key = one_hot_key
+        self._mass = mass
+        self._atom_strings = atom_strings
         self._cur_state = self._prev_state = init_state
         self._cur_coords = init_coords
         self._cur_velo = init_velo
-        self._cur_forces = init_forces
-        self._cur_energies = init_energies
-        self._cur_a = init_a
-        self._cur_h = init_h
-        self._cur_d = init_d
-
+        self._cur_forces = torch.zeros(nstates, natoms, 3)
+        self._cur_energies = torch.zeros(nstates)
+    
         self._prev_coords = self._prev_prev_coords = torch.zeros_like(init_coords)
         self._prev_velo = self._prev_prev_velo = torch.zeros_like(init_velo)
-        self._prev_forces = self._prev_prev_forces = torch.zeros_like(init_forces)
-        self._prev_energies = self._prev_prev_energies = torch.zeros_like(init_energies)
-        self._prev_a = self._prev_prev_a = torch.zeros_like(init_a)
-        self._prev_h = self._prev_prev_h = torch.zeros_like(init_h)
-        self._prev_d = self._prev_prev_d = torch.zeros_like(init_d)
+        self._prev_forces = self._prev_prev_forces = torch.zeros_like(self._cur_forces)
+        self._prev_energies = self._prev_prev_energies = torch.zeros_like(self._cur_energies)
+
+        # TODO: not used yet 
+        self._cur_a = torch.zeros(natoms, 3)
+        self._cur_h = torch.zeros(natoms, 3)
+        self._cur_d = torch.zeros(natoms, 3)
+        self._prev_a = self._prev_prev_a = torch.zeros_like(self._cur_a)
+        self._prev_h = self._prev_prev_h = torch.zeros_like(self._cur_h)
+        self._prev_d = self._prev_prev_d = torch.zeros_like(self._cur_d)
+
         self._has_hopped = 'NO HOP'
         self._ic_e_thresh = ic_e_thresh
         self._isc_e_thresh = isc_e_thresh
@@ -115,22 +113,13 @@ class TrajectoryPropagator:
         self._save_snapshot()
         self._shift(mode='NUCLEAR')
         self._nuclear()
-        self._shift(mode='ELECTRONIC')
-        self._surface_hopping()
-        self._reset_velo()
+        
+        # self._shift(mode='ELECTRONIC')
+        # TODO: implement
+        # self._surface_hopping()
+        # self._reset_velo()
 
-    def log_step(self) -> None:
-        """
-        Logs the current trajectory step.
-
-        """
-        self._logger.log_step(
-            coords=self._cur_coords,
-            velo=self._cur_velo,
-            forces=self._cur_forces,
-            energies=self._cur_energies,
-            state=self._cur_state
-        )
+        self._iter += 1
 
     def _nuclear(self) -> None:
         """
@@ -175,6 +164,7 @@ class TrajectoryPropagator:
             velo=self._cur_velo
         )
 
+    """ 
     def _surface_hopping(self) -> None:
         a, h, d, v, has_hopped, state = computer.surface_hopping(
             state=self._cur_state,
@@ -201,8 +191,12 @@ class TrajectoryPropagator:
         self._cur_velo = v
         self._has_hopped = has_hopped 
         self._cur_state = state
+    """
+
+    # TODO: implement
+    def _is_valid_traj(self) -> bool:
+        return True
  
-    # FIXME: check termination somewhere
     def status(self) -> TerminationStatus:
         """
         Determines if the current trajectory should be propagated further.
@@ -211,12 +205,14 @@ class TrajectoryPropagator:
             None
 
         Returns:
-            (bool)
+            (bool, int): Should terminate and exit code.
 
         """
-        should_terminate = ...
-        exit_code = ...
-        return TerminationStatus(should_terminate, exit_code) # type: ignore
+        if self._iter == self._nsteps:
+            return TerminationStatus(should_terminate=True, exit_code=1)
+        if not self._is_valid_traj():
+            return TerminationStatus(should_terminate=True, exit_code=2)
+        return TerminationStatus(should_terminate=False, exit_code=0)
 
     # FIXME: check if needed
     def _scale_kinetic_energy(self) -> None:
@@ -235,7 +231,6 @@ class TrajectoryPropagator:
         )
         NotImplemented()
 
-    # FIXME: find better way to decode one-hot
     def _save_snapshot(self) -> None:
         """
         Saves the current molecular system data to the running
@@ -251,12 +246,13 @@ class TrajectoryPropagator:
         snapshot = Snapshot(
             iteration=self._iter,
             state=self._cur_state,
-            one_hot=self._atom_types,
-            one_hot_key=self._one_hot_key,
+            atom_strings=self._atom_strings,
             coords=self._cur_coords.clone(),
-            energy=self._cur_energies[self._cur_state],
-            forces=self._cur_forces[self._cur_state]
+            velo=self._cur_velo.clone(),
+            forces=self._cur_forces.clone(),
+            energies=self._cur_energies.clone()
         )
+        snapshot.log(self._logger)
         self._traj.add(snapshot)
 
     def _shift(self, mode: str) -> None:

@@ -88,7 +88,7 @@ class TrajLogger(Logger):
  Interval: {self._delta_t}(fs)
  Total propagation: {step * self._delta_t}(fs)
  """
-        if exit_code == 0:
+        if exit_code == 1:
             s += f"""
 
  *** Happy Landing ***

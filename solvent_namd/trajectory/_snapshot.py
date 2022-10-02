@@ -1,8 +1,7 @@
 import torch
 
-from solvent_namd import computer
-
-from typing import Dict, List, Optional
+from solvent_namd import logger
+from typing import List, Optional
 
 
 class Snapshot():
@@ -10,11 +9,11 @@ class Snapshot():
         self,
         iteration: int,
         state: int,
-        one_hot: torch.Tensor,
-        one_hot_key: Dict,
+        atom_strings: List[str],
         coords: torch.Tensor,
-        energy: torch.Tensor,
+        velo: torch.Tensor,
         forces: torch.Tensor,
+        energies: torch.Tensor,
         nacs: Optional[torch.Tensor]=None,
         socs: Optional[torch.Tensor]=None
     ) -> None:
@@ -37,17 +36,21 @@ class Snapshot():
             None
 
         """
-        self._iter: int = iteration
-        self._state: int = state
-        self._atom_types: List[str] = computer.one_hot_to_atom_type(one_hot, one_hot_key)
-        self._coords: List[List[float]] = coords.tolist()
-        self._energy: float = energy.item()
-        self._forces: List[List[float]] = forces.tolist()
-        # self._nacs = nacs.tolist()
-        # self._socs = socs.tolist()
-
-    def info_atom_types(self) -> List[str]:
-        return self._atom_types
-
-    def info_coords(self) -> List[List[float]]:
-        return self._coords
+        self._iteration = iteration
+        self._state = state
+        self._atom_strings = atom_strings
+        self._coords = coords
+        self._velo = velo
+        self._forces = forces 
+        self._energies = energies
+        self._nacs = nacs
+        self._socs = socs 
+    
+    def log(self, logger: logger.TrajLogger) -> None:
+        logger.log_step(
+            coords=self._coords,
+            velo=self._velo,
+            forces=self._forces,
+            energies=self._energies,
+            state=self._state
+        )
