@@ -6,3 +6,9 @@
 **.log
 **_temp/
 **todo.txt
+
+# rust client
+**debug/
+**target/
+**Cargo.lock
+**/*.rs.bk
