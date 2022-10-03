@@ -1,13 +1,16 @@
 """
 STATUS: DEV
 
+>> python cyp_15_namd_demo.py cyp-15-input.yml cyp-15-model.pt cyp-15-init-cond.pt cyp-15-one-hot.pt
+
 """
 
 import sys
 import yaml
 import torch
-from solvent import nn
+from e3nn import o3
 from pathlib import Path
+from solvent import models
 
 from solvent_namd import NAMD
 
@@ -19,7 +22,7 @@ _MODEL_FILE = sys.argv[2]
 _INIT_COND_FILE = sys.argv[3]
 _ATOM_TYPES_FILE = sys.argv[4]
 
-model = nn.SolventModel(
+model = models.SolventModel(
       irreps_in='3x0e',
       hidden_sizes=[125, 40, 25, 15],
       irreps_out=f'3x0e',
@@ -33,13 +36,12 @@ model = nn.SolventModel(
       navg_neighbors=16.0,
       act=None
 )
-model.load_state_dict(torch.load(_MODEL_FILE))
+model.load_state_dict(torch.load(_MODEL_FILE, map_location='cpu')['model'])
 model.eval()
 
 init_cond = torch.load(_INIT_COND_FILE)
 atom_types = torch.load(_ATOM_TYPES_FILE)
 
-# load yaml file to python dict
 d: dict = yaml.safe_load(Path(_INPUT_FILE).read_text())['instance']
 
 namd = NAMD.deserialize(
@@ -48,6 +50,8 @@ namd = NAMD.deserialize(
         init_cond=init_cond,
         atom_types=atom_types
 )
+print('load succesful!\n')
+
 namd.run()
 
 print('finished!')

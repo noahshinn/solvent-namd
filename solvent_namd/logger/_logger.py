@@ -3,6 +3,7 @@ STATUS: DEV
 
 """
 
+import os
 import abc
 import time
 
@@ -25,7 +26,11 @@ class Logger:
         self._ntraj = ntraj
         self._delta_t = delta_t
         self._nsteps = nsteps
-        open(f, 'w').close()
+        if os.path.exists(f):
+            open(f, 'w').close()
+        else:
+            print(f'creating {f}')
+            open(f, 'x').close()
 
     def _log(self, msg: str) -> None:
         with open(self._f, 'a') as file:
@@ -41,8 +46,9 @@ class Logger:
         """ Abstract method """
         return
 
+
 class TrajLogger(Logger):
-    _atom_types: List[str]
+    _atom_strings: List[str]
 
     def __init__(
             self,
@@ -51,13 +57,12 @@ class TrajLogger(Logger):
             ntraj: int,
             delta_t: float,
             nsteps: int,
-            atom_types: torch.Tensor,
+            atom_strings: List[str],
             nstates: int
         ) -> None:
         super().__init__(f, ntraj, delta_t, nsteps)
         self._traj = traj
-        # FIXME: convert to string atom types
-        self._atom_types = atom_types # type: ignore
+        self._atom_strings = atom_strings 
         self._nstates = nstates
         self._srt_time = time.perf_counter()
 
@@ -84,7 +89,7 @@ class TrajLogger(Logger):
 
  Wall time: {round(time.perf_counter() - self._srt_time, 2)}(s)
  Trajectory: {self._traj} / {self._ntraj - 1} 
- Step: {step}/{self._nsteps}
+ Steps: {step + 1}/{self._nsteps}
  Interval: {self._delta_t}(fs)
  Total propagation: {step * self._delta_t}(fs)
  """
@@ -112,17 +117,17 @@ class TrajLogger(Logger):
         self._log_coords(coords)
         self._log_velo(velo)
         self._log_forces(forces)
-        self._log_energies(energies)
-        self._log_state(state)
+        # self._log_energies(energies)
+        # self._log_state(state)
 
     def _format_atomic_info(self, x: torch.Tensor) -> str:
         assert x.size(dim=1) == 3
         s = ''
-        for i, l in x:
-            a = self._atom_types[i]
-            x_c = l[1]
-            y_c = l[2]
-            z_c = l[3]
+        for i, l in enumerate(x):
+            a = self._atom_strings[i]
+            x_c = l[0]
+            y_c = l[1]
+            z_c = l[2]
             s += '%-5s%24.16f%24.16f%24.16f\n' % (a, float(x_c), float(y_c), float(z_c))
         return s
 
@@ -146,7 +151,7 @@ class TrajLogger(Logger):
         s = ''
         for i in range(self._nstates):
             s += f"""
-  &gradient state             %3d in Eh/Bohr
+  &gradient state             {i} in Eh/Bohr
 -------------------------------------------------------------------------------
 {self._format_atomic_info(forces[i])}-------------------------------------------------------------------------------
 """ 
@@ -207,7 +212,7 @@ class NAMDLogger(Logger):
         s = f"""
  -----------------------------------------------------------------------------
 
- Wall time: {round(time.perf_counter() - self._srt_time, 2)}(s)
+ Wall time: {time.perf_counter() - self._srt_time:.2f}(s)
  Number of terminated trajectories: {nterminated}
  Number of successful trajectories: {ntraj - nterminated}
  Total number of trajectories: {ntraj}
@@ -217,21 +222,3 @@ class NAMDLogger(Logger):
  *** Happy Landing ***
  """
         self._log(s)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

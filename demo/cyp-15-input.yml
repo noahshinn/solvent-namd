@@ -1,7 +1,7 @@
 instance:
   ncores: 16
   ntraj: 500
-  prop_duration: 1000000
+  prop_duration: 100
   delta_t: 0.5
   natoms: 51
   nstates: 3

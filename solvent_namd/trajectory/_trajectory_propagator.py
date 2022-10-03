@@ -71,7 +71,7 @@ class TrajectoryPropagator:
 
         self._iter = 0
         self._nsteps = nsteps
-        self._traj = TrajectoryHistory()
+        self._traj = TrajectoryHistory(max_length=nsteps)
         self._atom_types = atom_types
         self._natoms = natoms
         self._nstates = nstates
@@ -127,9 +127,9 @@ class TrajectoryPropagator:
 
         """
         # FIXME: check if needed
-        if self._iter == 0:
-            self._scale_kinetic_energy()
-            return
+        # if self._iter == 0:
+            # self._scale_kinetic_energy()
+            # return
 
         self._cur_coords = computer.verlet_coords(
             state=self._cur_state,
@@ -208,6 +208,7 @@ class TrajectoryPropagator:
             (bool, int): Should terminate and exit code.
 
         """
+        print(self._iter)
         if self._iter == self._nsteps:
             return TerminationStatus(should_terminate=True, exit_code=1)
         if not self._is_valid_traj():

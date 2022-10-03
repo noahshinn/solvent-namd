@@ -19,7 +19,13 @@ def _ml_forces(energies: torch.Tensor, pos: torch.Tensor) -> torch.Tensor:
     nstates = energies.size(dim=0)
     forces = []
     for i in range(nstates):
-        f = torch.autograd.grad(-energies[i], pos, create_graph=True, retain_graph=True)[0]
+        f = torch.autograd.grad(
+            -energies[i],
+            pos,
+            create_graph=True,
+            retain_graph=True,
+            allow_unused=True
+        )[0]
         forces.append(f)
     forces = torch.stack(forces, dim=0)
 
@@ -29,10 +35,12 @@ def ml_energies_forces(
         model: torch.nn.Module,
         structure: Data,
     ) -> EnergiesForces:
-    e = model(structure)
-    f = _ml_forces(e, structure.pos)
+    # FIXME: temp
+    # e = model(structure)
+    # f = _ml_forces(e, structure.pos)
 
-    return EnergiesForces(e.clone(), f.clone())
+    # return EnergiesForces(e.clone(), f.clone())
+    return EnergiesForces(torch.rand(3), torch.rand(3, 51, 3))
 
 
 if __name__ == '__main__':

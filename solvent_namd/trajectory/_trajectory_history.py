@@ -21,7 +21,7 @@ class TrajectoryHistory:
     """
     def __init__(
         self,
-        max_length: Optional[int]=None
+        max_length: Optional[int]=5
     ) -> None:
         """
         Initializes an empty history of molecular system snapshots.

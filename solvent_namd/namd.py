@@ -4,12 +4,13 @@ STATUS: DEV
 """
 
 import os
+import glob
 import torch
 import inspect
 
 from solvent_namd import utils, logger, trajectory, computer
 
-from typing import Dict, Type, TypeVar
+from typing import Dict, Type, TypeVar, List
 
 T = TypeVar('T', bound='NAMD')
 
@@ -22,10 +23,16 @@ class NAMD():
     _prop_duration: float
     _delta_t: float
     _natoms: int
-    _mass: torch.Tensor
     _nstates: int
     _nsteps: int
     _init_cond: torch.Tensor
+    _init_state: int
+    _atom_types: torch.Tensor
+    _mass: torch.Tensor
+    _atom_strings: List[str]
+    _ic_e_thresh: float
+    _isc_e_thresh: float
+    _max_hop: int
     _log_dir: str
     _model_name: str
     _description: str
@@ -85,6 +92,11 @@ class NAMD():
         self._isc_e_thresh = isc_e_thresh 
         self._max_hop = max_hop
         self._log_dir = log_dir
+        if os.path.exists(log_dir):
+            for f in glob.glob(f'{log_dir}/*'):
+                os.remove(f)
+        else:
+            os.makedirs(log_dir)
         self._model_name = model_name
         self._description = description
 
@@ -99,16 +111,15 @@ class NAMD():
         d['model'] = model
         d['init_cond'] = init_cond
         d['atom_types'] = atom_types
-        params = inspect.getfullargspec(NAMD.__init__)
+        params = inspect.getfullargspec(NAMD.__init__).args
         for k in d:
             if not k in params:
                 raise utils.InvalidInputError(f'input `{k}` was given but is not a valid input')
         for p in params:
-            if not p in d:
+            if p != 'self' and not p in d:
                 raise utils.InvalidInputError(f'input `{p}` was not given in input')
         return cls(**d)
 
-    # TODO: deploy on all cores/threads
     def run(self) -> None:
         nterminated = 0
         lg = logger.NAMDLogger(
@@ -131,7 +142,7 @@ class NAMD():
                 ntraj=self._ntraj,
                 delta_t=self._delta_t,
                 nsteps=self._nsteps,
-                atom_types=self._atom_types,
+                atom_strings=self._atom_strings,
                 nstates=self._nstates
             )
             traj_lg.log_header()
