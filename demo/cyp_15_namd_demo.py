@@ -15,7 +15,6 @@ from solvent import models
 from solvent_namd import NAMD
 
 
-# input file
 assert len(sys.argv) == 5
 _INPUT_FILE = sys.argv[1]
 _MODEL_FILE = sys.argv[2]
