@@ -1,12 +1,12 @@
-use std::fs;
-use std::str;
+//use std::fs;
+//use std::str;
 use tokio::task;
-use std::unimplemented;
+//use std::unimplemented;
 
 use std::{thread, time::Duration};
 
 
-const WRITE_FILE: &str = "out.log";
+//const WRITE_FILE: &str = "out.log";
 const NTRAJ: u16 = 500;
 
 #[tokio::main]
@@ -16,7 +16,9 @@ async fn main() {
     // FIXME: executes in batches of size N where N is the number of cores
     for i in 0..NTRAJ {
         let h = task::spawn(async move {
-            unimplemented!("call python microservice");
+            println!("number {} from green thread", i);
+            thread::sleep(Duration::from_millis(10000));
+            //unimplemented!("call python microservice");
         });
         handles.push(h);
     }
@@ -26,12 +28,12 @@ async fn main() {
         results.push(h.await.unwrap());
     }
 
-    let mut res_string: String = "".to_owned();
-    for res in results {
-        res_string.push_str(res);
-        res_string.push_str("\n")
-    }
+    //let mut res_string: String = "".to_owned();
+    //for res in results {
+        //res_string.push_str(res);
+        //res_string.push_str("\n")
+    //}
 
-    fs::write(WRITE_FILE, res_string).expect("Unable to write to file!");
+    //fs::write(WRITE_FILE, res_string).expect("Unable to write to file!");
 
 }
