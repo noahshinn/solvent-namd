@@ -7,6 +7,7 @@ import os
 import glob
 import torch
 import inspect
+from joblib import Parallel, delayed
 
 from solvent_namd import utils, logger, trajectory, computer
 
@@ -120,8 +121,48 @@ class NAMD():
                 raise utils.InvalidInputError(f'input `{p}` was not given in input')
         return cls(**d)
 
+    def _run_traj(self, traj_num: int) -> int:
+        traj_id = f'traj-{traj_num}'
+        traj_lg = logger.TrajLogger(
+            f=os.path.join(self._log_dir, f'{traj_id}.log'),
+            traj=traj_num,
+            ntraj=self._ntraj,
+            delta_t=self._delta_t,
+            nsteps=self._nsteps,
+            atom_strings=self._atom_strings,
+            nstates=self._nstates
+        )
+        traj_lg.log_header()
+        traj = trajectory.TrajectoryPropagator(
+            logger=traj_lg,
+            model=self._model,
+            init_state=self._init_state,
+            nstates=self._nstates,
+            natoms=self._natoms,
+            atom_types=self._atom_types,
+            mass=self._mass,
+            atom_strings=self._atom_strings,
+            init_coords=self._init_cond[traj_num][0],
+            init_velo=self._init_cond[traj_num][1],
+            delta_t=self._delta_t,
+            nsteps=self._nsteps,
+            ic_e_thresh=self._ic_e_thresh,
+            isc_e_thresh=self._isc_e_thresh,
+            max_hop=self._max_hop
+        )
+        for step in range(self._nsteps):
+            traj.propagate()
+            should_terminate, exit_code = traj.status()
+            # FIXME: here
+            if should_terminate:
+                traj_lg.log_termination(
+                    step=step,
+                    exit_code=exit_code
+                )
+                return exit_code
+        return 1
+
     def run(self) -> None:
-        nterminated = 0
         lg = logger.NAMDLogger(
             f=os.path.join(self._log_dir, 'traj-all.log'),
             ntraj=self._ntraj,
@@ -133,49 +174,11 @@ class NAMD():
             natoms=self._natoms,
             nstates=self._nstates
         )
-        for i in range(self._ntraj):
-            # TODO: send initial conditions
-            traj_id = f'traj-{i}'
-            traj_lg = logger.TrajLogger(
-                f=os.path.join(self._log_dir, f'{traj_id}.log'),
-                traj=i,
-                ntraj=self._ntraj,
-                delta_t=self._delta_t,
-                nsteps=self._nsteps,
-                atom_strings=self._atom_strings,
-                nstates=self._nstates
-            )
-            traj_lg.log_header()
-            traj = trajectory.TrajectoryPropagator(
-                logger=traj_lg,
-                model=self._model,
-                init_state=self._init_state,
-                nstates=self._nstates,
-                natoms=self._natoms,
-                atom_types=self._atom_types,
-                mass=self._mass,
-                atom_strings=self._atom_strings,
-                init_coords=self._init_cond[i][0],
-                init_velo=self._init_cond[i][1],
-                delta_t=self._delta_t,
-                nsteps=self._nsteps,
-                ic_e_thresh=self._ic_e_thresh,
-                isc_e_thresh=self._isc_e_thresh,
-                max_hop=self._max_hop
-            )
-            for step in range(self._nsteps):
-                traj.propagate()
-                should_terminate, exit_code = traj.status()
-                # FIXME: here
-                if should_terminate:
-                    traj_lg.log_termination(
-                        step=step,
-                        exit_code=exit_code
-                    )
-                    nterminated += 1
-                    break 
+        res = Parallel(n_jobs=self._ncores)(delayed(self._run_traj)(i) for i in range(self._ntraj))
+        s, t = computer.split_terminated(res)
+
         lg.log_termination(
-            nterminated=nterminated,
-            ntraj=self._ntraj,
+            nterminated=t,
+            nsuccessful=s,
             prop_duration=self._prop_duration
         )

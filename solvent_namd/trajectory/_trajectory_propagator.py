@@ -208,7 +208,6 @@ class TrajectoryPropagator:
             (bool, int): Should terminate and exit code.
 
         """
-        print(self._iter)
         if self._iter == self._nsteps:
             return TerminationStatus(should_terminate=True, exit_code=1)
         if not self._is_valid_traj():

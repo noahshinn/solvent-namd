@@ -10,3 +10,4 @@ from ._reset_velo import reset_velo
 from ._ml_energies_forces import ml_energies_forces
 from ._one_hot_to_mass import one_hot_to_mass 
 from ._one_hot_to_atom_string import one_hot_to_atom_string 
+from ._split_terminated import split_terminated

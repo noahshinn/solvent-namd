@@ -93,7 +93,7 @@ class TrajLogger(Logger):
  Interval: {self._delta_t}(fs)
  Total propagation: {step * self._delta_t}(fs)
  """
-        if exit_code == 1:
+        if exit_code == 0:
             s += f"""
 
  *** Happy Landing ***
@@ -206,7 +206,7 @@ class NAMDLogger(Logger):
     def log_termination(
             self,
             nterminated: int,
-            ntraj: int,
+            nsuccessful: int,
             prop_duration: float
         ) -> None:
         s = f"""
@@ -214,8 +214,8 @@ class NAMDLogger(Logger):
 
  Wall time: {time.perf_counter() - self._srt_time:.2f}(s)
  Number of terminated trajectories: {nterminated}
- Number of successful trajectories: {ntraj - nterminated}
- Total number of trajectories: {ntraj}
+ Number of successful trajectories: {nsuccessful}
+ Total number of trajectories: {nsuccessful + nterminated}
  Interval: {self._delta_t}(fs)
  Goal propagation duration: {prop_duration}(fs)
 
