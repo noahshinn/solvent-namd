@@ -52,6 +52,7 @@ def verlet_velo(
     """
     natoms = coords.size(dim=0)
     next_velo = []
+    delta_t *= 1e-15
     for i in range(natoms):
         delta_velo = 0.5 * (forces_prev[state][i] + forces[state][i]) / mass[i] * delta_t
         next_velo.extend([velo[i] - delta_velo])

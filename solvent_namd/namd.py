@@ -11,7 +11,7 @@ from joblib import Parallel, delayed
 
 from solvent_namd import utils, logger, trajectory, computer
 
-from typing import Dict, Type, TypeVar, List
+from typing import Dict, Type, TypeVar, List, Optional
 
 T = TypeVar('T', bound='NAMD')
 
@@ -57,7 +57,8 @@ class NAMD():
             max_hop: int,
             log_dir: str = 'out',
             model_name: str = 'Unnamed',
-            description: str = 'No description'
+            description: str = 'No description',
+            nhistory: Optional[int] = None
         ) -> None:
         """
         Manages all trajectory propagations.
@@ -100,6 +101,10 @@ class NAMD():
             os.makedirs(log_dir)
         self._model_name = model_name
         self._description = description
+        if not nhistory is None:
+            self._nhistory = nhistory
+        else:
+            self._nhistory = self._nsteps
 
     @classmethod
     def deserialize(
@@ -135,6 +140,7 @@ class NAMD():
         traj_lg.log_header()
         traj = trajectory.TrajectoryPropagator(
             logger=traj_lg,
+            nhistory=self._nhistory,
             model=self._model,
             init_state=self._init_state,
             nstates=self._nstates,

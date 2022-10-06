@@ -22,6 +22,7 @@ class TrajectoryPropagator:
     def __init__(
             self,
             logger: TrajLogger,
+            nhistory: int,
             model: torch.nn.Module,
             init_state: int,
             nstates: int,
@@ -71,7 +72,7 @@ class TrajectoryPropagator:
 
         self._iter = 0
         self._nsteps = nsteps
-        self._traj = TrajectoryHistory(max_length=nsteps)
+        self._traj = TrajectoryHistory(max_length=nhistory)
         self._atom_types = atom_types
         self._natoms = natoms
         self._nstates = nstates
@@ -136,17 +137,17 @@ class TrajectoryPropagator:
             coords=self._cur_coords,
             mass=self._mass,
             velo=self._cur_velo,
-            forces=self._cur_forces.clone(),
+            forces=self._cur_forces,
             delta_t=self._delta_t
         )
 
         self._cur_energies, self._cur_forces = computer.ml_energies_forces(
             model=self._model,
-            structure=Data(
-                x=self._atom_types,
-                pos=self._cur_coords,
-                z=self._mass
-            )
+            structure={
+                'x': self._atom_types,
+                'pos': self._cur_coords.clone().detach(),
+                'z': self._mass
+            }
         )
 
         self._cur_velo = computer.verlet_velo(
@@ -154,8 +155,8 @@ class TrajectoryPropagator:
             coords=self._cur_coords,
             mass=self._mass,
             velo=self._cur_velo,
-            forces=self._cur_forces.clone(),
-            forces_prev=self._prev_forces.clone(),
+            forces=self._cur_forces,
+            forces_prev=self._prev_forces,
             delta_t=self._delta_t
         )
 
@@ -247,10 +248,10 @@ class TrajectoryPropagator:
             iteration=self._iter,
             state=self._cur_state,
             atom_strings=self._atom_strings,
-            coords=self._cur_coords.clone(),
-            velo=self._cur_velo.clone(),
-            forces=self._cur_forces.clone(),
-            energies=self._cur_energies.clone()
+            coords=self._cur_coords.clone().detach(),
+            velo=self._cur_velo.clone().detach(),
+            forces=self._cur_forces.clone().detach(),
+            energies=self._cur_energies.clone().detach()
         )
         snapshot.log(self._logger)
         self._traj.add(snapshot)
@@ -267,17 +268,17 @@ class TrajectoryPropagator:
 
         """
         if mode == 'NUCLEAR':
-            self._prev_prev_coords = self._prev_coords.clone()
-            self._prev_prev_velo = self._prev_velo.clone()
-            self._prev_prev_forces = self._prev_forces.clone()
-            self._prev_prev_energies = self._prev_energies.clone()
+            self._prev_prev_coords = self._prev_coords.clone().detach()
+            self._prev_prev_velo = self._prev_velo.clone().detach()
+            self._prev_prev_forces = self._prev_forces.clone().detach()
+            self._prev_prev_energies = self._prev_energies.clone().detach()
 
-            self._prev_coords = self._cur_coords.clone()
-            self._prev_velo = self._cur_velo.clone()
-            self._prev_forces = self._cur_forces.clone()
-            self._prev_energies = self._cur_energies.clone()
+            self._prev_coords = self._cur_coords.clone().detach()
+            self._prev_velo = self._cur_velo.clone().detach()
+            self._prev_forces = self._cur_forces.clone().detach()
+            self._prev_energies = self._cur_energies.clone().detach()
         else:
-            self._prev_prev_a = self._prev_a.clone()
-            self._prev_prev_h = self._prev_h.clone()
-            self._prev_prev_d = self._prev_d.clone()
+            self._prev_prev_a = self._prev_a.clone().detach()
+            self._prev_prev_h = self._prev_h.clone().detach()
+            self._prev_prev_d = self._prev_d.clone().detach()
             self._prev_state = self._cur_state

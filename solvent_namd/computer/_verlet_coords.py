@@ -48,6 +48,7 @@ def verlet_coords(
     """
     natoms = coords.size(dim=0)
     next_coords = []
+    delta_t *= 1e-15
     for i in range(natoms):
         delta_pos = (velo[i] * delta_t - 0.5 * forces[state][i] / mass[i] * delta_t ** 2)
         next_coords.extend([coords[i] + delta_pos])

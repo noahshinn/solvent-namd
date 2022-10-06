@@ -5,8 +5,7 @@ STATUS: NOT TESTED
 
 import torch
 
-from torch_geometric.data.data import Data
-from typing import NamedTuple
+from typing import NamedTuple, Dict
 
 
 class EnergiesForces(NamedTuple):
@@ -15,7 +14,6 @@ class EnergiesForces(NamedTuple):
 
 
 def _ml_forces(energies: torch.Tensor, pos: torch.Tensor) -> torch.Tensor:
-    pos.requires_grad = True
     nstates = energies.size(dim=0)
     forces = []
     for i in range(nstates):
@@ -23,24 +21,22 @@ def _ml_forces(energies: torch.Tensor, pos: torch.Tensor) -> torch.Tensor:
             -energies[i],
             pos,
             create_graph=True,
-            retain_graph=True,
-            allow_unused=True
+            retain_graph=True
         )[0]
-        forces.append(f)
+        forces.append(f * 0.7182231545448303)
     forces = torch.stack(forces, dim=0)
 
     return forces
 
 def ml_energies_forces(
         model: torch.nn.Module,
-        structure: Data,
+        structure: Dict,
     ) -> EnergiesForces:
-    # FIXME: temp
-    # e = model(structure)
-    # f = _ml_forces(e, structure.pos)
+    structure['pos'].requires_grad = True
+    e = model(structure) * 0.7182231545448303 + -36152.6796875
+    f = _ml_forces(e.squeeze(), structure['pos'])
 
-    # return EnergiesForces(e.clone(), f.clone())
-    return EnergiesForces(torch.rand(3), torch.rand(3, 51, 3))
+    return EnergiesForces(e.clone(), f.clone())
 
 
 if __name__ == '__main__':

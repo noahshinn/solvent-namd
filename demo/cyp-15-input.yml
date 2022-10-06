@@ -1,5 +1,5 @@
 instance:
-  ncores: 16
+  ncores: 12
   ntraj: 500
   prop_duration: 100
   delta_t: 0.5
@@ -22,3 +22,4 @@ instance:
   log_dir: "cyclopropenone-15-waters-namd"
   model_name: "e3nn water cluster model"
   description: "Dynamics for cyclopropenone in 15 explicit water molecules."
+  nhistory: 1
