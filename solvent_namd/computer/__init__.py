@@ -1,5 +1,3 @@
-from ._gsh_internal_conversion import gsh_internal_conversion
-from ._gsh_intersystem_crossing import gsh_intersystem_crossing
 from ._fssh import fssh
 from ._gsh import gsh
 from ._ke import ke

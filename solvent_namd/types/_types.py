@@ -25,6 +25,7 @@ class SurfaceHoppingMetrics(NamedTuple):
     velo: velocities
     hop_type: "NO HOP" | "HOP" | "FRUSTRATED"
     state: current electronic energy state
+    log_info: info to log
 
     """
     a: torch.Tensor
@@ -33,6 +34,7 @@ class SurfaceHoppingMetrics(NamedTuple):
     velo: torch.Tensor
     hop_type: str 
     state: PosInt
+    log_info: str
 
 class P_NACS(NamedTuple):
     p: torch.Tensor 
