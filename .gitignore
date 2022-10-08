@@ -6,7 +6,7 @@
 **.log
 **_temp/
 **todo.txt
-**/.DS_STORE
+**/.DS_Store
 
 # rust client
 **debug/
