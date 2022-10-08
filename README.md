@@ -9,11 +9,11 @@ torch >= 1.12
 CUDA >= 11.6 (for gpu-accelerated inference)
 
 To install:
-  * Install torch (cpu)
+  * Install torch
   ```
   pip install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cpu
   ```
-    or torch (gpu)
+  * or torch with CUDA (optional)
   ```
   pip install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu116
   ```
