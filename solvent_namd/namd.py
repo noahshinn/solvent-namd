@@ -17,6 +17,25 @@ T = TypeVar('T', bound='NAMD')
 
 
 class NAMD():
+    """
+    Usage:
+
+    >>> import yaml, torch, pathlib
+    >>> model = Model(*args, **kwargs)
+    >>> model.load_state_dict(torch.load('model.pt'))
+    >>> model.eval()
+    >>> init_cond = torch.load('init_cond.pt')
+    >>> atom_types = torch.load('atom_types.pt') 
+    >>> constants = yaml.safe_load(pathlib.Path('constants.yml').read_text())['instance']
+    >>> namd = NAMD.deserialize(
+    ...     d=constants,
+    ...     model=constants,
+    ...     init_cond=init_cond,
+    ...     atom_types=atom_types
+    ... )
+    >>> namd.run()
+
+    """
     _ncores: int
     _model: torch.nn.Module
     _ntraj: int
