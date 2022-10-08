@@ -45,7 +45,7 @@ class Snapshot():
         self._energies = energies
         self._nacs = nacs
         self._socs = socs 
-    
+
     def log(self, logger: logger.TrajLogger) -> None:
         logger.log_step(
             coords=self._coords,

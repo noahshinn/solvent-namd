@@ -11,8 +11,6 @@ http://www.rsc.org/suppdata/c8/cp/c8cp02651c/c8cp02651c1.pdf
 import math
 import torch
 
-from typing import NamedTuple
-
 
 def _delta_e(
         cur_state: int,
@@ -36,13 +34,7 @@ def _delta_e(
     ]
     return torch.stack(d_E, dim=0).abs()
 
-
-class P_NACS(NamedTuple):
-    p: torch.Tensor
-    nacs: torch.Tensor
-
-
-def internal_conversion(
+def _gsh_internal_conversion(
         cur_state: int,
         other_state: int,
         mass: torch.Tensor,
@@ -149,7 +141,7 @@ def internal_conversion(
     pnacs = (f_ia_2 - f_ia_1) / mass.pow(2)
     nacs = pnacs / torch.sum(pnacs ** 2).pow(0.5)
     
-    return P_NACS(p, nacs)
+    return types.P_NACS(p, nacs)
 
 
 if __name__ == '__main__':
@@ -186,7 +178,7 @@ if __name__ == '__main__':
     assert d_e.size() == torch.Size([3])
     ntests_passed += 1
 
-    p, nacs = internal_conversion(
+    p, nacs = gsh_internal_conversion(
         cur_state=cur_state,
         other_state=other_state,
         mass=mass,

@@ -4,24 +4,18 @@ STATUS: DEV
 """
 
 import torch
-from torch_geometric.data.data import Data
 
-from solvent_namd import computer
+from solvent_namd import computer, logger
 from solvent_namd.trajectory import TrajectoryHistory, Snapshot
 
-from solvent_namd.logger import TrajLogger
-from typing import List, NamedTuple
-
-
-class TerminationStatus(NamedTuple):
-    should_terminate: bool
-    exit_code: int
+from solvent_namd import types
+from typing import List
 
 
 class TrajectoryPropagator:
     def __init__(
             self,
-            logger: TrajLogger,
+            logger: logger.TrajLogger,
             nhistory: int,
             model: torch.nn.Module,
             init_state: int,
@@ -36,7 +30,8 @@ class TrajectoryPropagator:
             nsteps: int,
             ic_e_thresh: float,
             isc_e_thresh: float,
-            max_hop: int
+            max_hop: int,
+            sh_method: str = 'FSSH'
         ) -> None:
         """
         Initializes a trajectory propagator.
@@ -67,6 +62,8 @@ class TrajectoryPropagator:
             None
 
         """
+        assert sh_method.upper() == 'GSH' or sh_method.upper() == 'FSSH'
+
         self._logger = logger
         self._model = model
 
@@ -101,6 +98,7 @@ class TrajectoryPropagator:
         self._ic_e_thresh = ic_e_thresh
         self._isc_e_thresh = isc_e_thresh
         self._max_hop = max_hop
+        self._sh_method = sh_method.upper()
 
         self._kinetic_energy = torch.tensor(0.0)
 
@@ -114,8 +112,8 @@ class TrajectoryPropagator:
         self._save_snapshot()
         self._shift(mode='NUCLEAR')
         self._nuclear()
-        print(self._cur_energies)
-        print(self._cur_forces[1])
+        # print(self._cur_energies)
+        # print(self._cur_forces[1])
         
         # self._shift(mode='ELECTRONIC')
         # TODO: implement
@@ -168,40 +166,43 @@ class TrajectoryPropagator:
             velo=self._cur_velo
         )
 
-    """ 
     def _surface_hopping(self) -> None:
-        a, h, d, v, has_hopped, state = computer.surface_hopping(
-            state=self._cur_state,
-            state_mult=self._state_mult,
-            mass=self._mass,
-            coord=self._cur_coords,
-            coord_prev=self._prev_coords,
-            coord_prev_prev=self._prev_prev_coords,
-            velo=self._cur_velo,
-            energies=self._cur_energies,
-            energies_prev=self._prev_energies,
-            energies_prev_prev=self._prev_prev_energies,
-            forces=self._cur_forces,
-            forces_prev=self._prev_forces,
-            forces_prev_prev=self._prev_prev_forces,
-            ke=self._kinetic_energy,
-            ic_e_thresh=self._ic_e_thresh,
-            isc_e_thresh=self._isc_e_thresh,
-            max_hop=self._max_hop
-        )
-        self._cur_a = a
-        self._cur_h = h
-        self._cur_d = d
-        self._cur_velo = v
-        self._has_hopped = has_hopped 
-        self._cur_state = state
-    """
+        if self._sh_method == 'FSSH':
+            # TODO
+            NotImplemented()
+        else:
+            # FIXME: state mult
+            a, h, d, v, has_hopped, state = computer.gsh(
+                state=self._cur_state,
+                state_mult=self._state_mult,
+                mass=self._mass,
+                coord=self._cur_coords,
+                coord_prev=self._prev_coords,
+                coord_prev_prev=self._prev_prev_coords,
+                velo=self._cur_velo,
+                energies=self._cur_energies,
+                energies_prev=self._prev_energies,
+                energies_prev_prev=self._prev_prev_energies,
+                forces=self._cur_forces,
+                forces_prev=self._prev_forces,
+                forces_prev_prev=self._prev_prev_forces,
+                ke=self._kinetic_energy,
+                ic_e_thresh=self._ic_e_thresh,
+                isc_e_thresh=self._isc_e_thresh,
+                max_hop=self._max_hop
+            )
+            self._cur_a = a
+            self._cur_h = h
+            self._cur_d = d
+            self._cur_velo = v
+            self._has_hopped = has_hopped 
+            self._cur_state = state
 
     # TODO: implement
     def _is_valid_traj(self) -> bool:
         return True
  
-    def status(self) -> TerminationStatus:
+    def status(self) -> types.TerminationStatus:
         """
         Determines if the current trajectory should be propagated further.
 
@@ -213,10 +214,10 @@ class TrajectoryPropagator:
 
         """
         if self._iter == self._nsteps:
-            return TerminationStatus(should_terminate=True, exit_code=1)
+            return types.TerminationStatus(should_terminate=True, exit_code=1)
         if not self._is_valid_traj():
-            return TerminationStatus(should_terminate=True, exit_code=2)
-        return TerminationStatus(should_terminate=False, exit_code=0)
+            return types.TerminationStatus(should_terminate=True, exit_code=2)
+        return types.TerminationStatus(should_terminate=False, exit_code=0)
 
     # FIXME: check if needed
     def _scale_kinetic_energy(self) -> None:

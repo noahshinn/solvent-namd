@@ -3,15 +3,8 @@ STATUS: DEV
 
 """
 
-import warnings
-
-from solvent_namd.trajectory import Snapshot
-from typing import List, Optional, NamedTuple
-
-
-class SparseInfo(NamedTuple):
-    atom_types: List[List[str]]
-    coords: List[List[List[float]]]
+from solvent_namd import trajectory
+from typing import List, Optional
 
 
 class TrajectoryHistory:
@@ -36,9 +29,9 @@ class TrajectoryHistory:
         if max_length:
             self._max_len = max_length
         self._len = 0
-        self._data: List[Snapshot] = []
+        self._data: List[trajectory.Snapshot] = []
 
-    def add(self, s: Snapshot) -> None:
+    def add(self, s: trajectory.Snapshot) -> None:
         """
         Adds a snapshot to the end of the history queue.
 
@@ -54,42 +47,3 @@ class TrajectoryHistory:
             self._data.pop(0)
         else:
             self._len += 1
-
-    def sparse_info(self) -> SparseInfo:
-        """
-        Returns atom type and coordinate data at corresponding indexes.
-
-        Args:
-            None
-
-        Returns:
-            atom_types (list(list(float))),
-            coords (list(list(list(float)))): Of shape (N, K, 3) where N is the
-                number of snapshots, K is the number of atoms per system, and 3
-                for x, y, and z
-
-        """
-        if self._max_len:
-            warnings.warn(f'max length of {self._max_len} is enforced, only returning last {self._len} snapshots.')
-        atom_types = []
-        coords = []
-        for s in self._data:
-            atom_types.extend([s.info_atom_types()])
-            coords.extend([s.info_coords()])
-
-        return SparseInfo(atom_types, coords)
-
-    def all_info(self) -> List[Snapshot]:
-        """
-        Returns the complete information per snapshot.
-
-        Args:
-            None
-        
-        Returns:
-            (list(Snapshot)): A list of molecular system snapshots.
-
-        """
-        if self._max_len:
-            warnings.warn(f'max length of {self._max_len} is enforced, only returning last {self._len} snapshots.')
-        return self._data
