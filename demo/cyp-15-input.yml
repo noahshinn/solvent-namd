@@ -1,6 +1,6 @@
 instance:
-  ncores: 12
-  ntraj: 500
+  ncores: 1
+  ntraj: 1
   prop_duration: 100
   delta_t: 0.5
   natoms: 51

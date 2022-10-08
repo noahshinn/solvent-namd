@@ -8,6 +8,7 @@ from pathlib import Path
 
 from typing import Dict
 
+
 def read_yaml(f: str) -> Dict:
     """
     Reads a yml file and returns a Python dictionary.

@@ -8,3 +8,9 @@ from ._priority_queue import PriorityQueue
 from ._read_xyz import read_xyz
 from ._write_xyz import write_xyz
 from ._read_velo import read_velo
+from ._angstrom_to_bohr import angstrom_to_bohr
+from ._bohr_to_angstrom import bohr_to_angstrom
+from ._hartree_to_ev import hartree_to_ev
+from ._ev_to_hartree import ev_to_hartree
+from ._fs_to_s import fs_to_s
+from ._s_to_fs import s_to_fs

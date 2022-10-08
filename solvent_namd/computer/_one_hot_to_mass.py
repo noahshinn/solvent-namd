@@ -24,4 +24,4 @@ def one_hot_to_mass(one_hot: torch.Tensor, mass_key: Dict[int, float]) -> torch.
     """
     mass = [mass_key[utils.hash_1d_tensor(atom)] for atom in one_hot]
 
-    return torch.FloatTensor(mass)
+    return torch.Tensor(mass)

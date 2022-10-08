@@ -11,6 +11,8 @@ https://en.wikipedia.org/wiki/Verlet_integration
 
 import torch
 
+from solvent_namd import utils
+
 
 def verlet_coords(
         state: int,
@@ -48,12 +50,14 @@ def verlet_coords(
     """
     natoms = coords.size(dim=0)
     next_coords = []
-    delta_t *= 1e-15
+    delta_t = utils.fs_to_s(delta_t) / (2.4188843265857 * 1e-17) # type: ignore
+    print(delta_t)
     for i in range(natoms):
-        delta_pos = (velo[i] * delta_t - 0.5 * forces[state][i] / mass[i] * delta_t ** 2)
+        delta_pos = (velo[i] * delta_t + 0.5 * forces[state][i] / mass[i] * delta_t ** 2)
         next_coords.extend([coords[i] + delta_pos])
     
     next_coords = torch.stack(next_coords, dim=0)
+    # print(next_coords)
 
     return next_coords
 

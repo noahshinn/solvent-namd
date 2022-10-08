@@ -6,7 +6,6 @@ STATUS: DEV
 import os
 import abc
 import time
-
 import torch
 
 from typing import List
@@ -141,7 +140,7 @@ class TrajLogger(Logger):
 
     def _log_velo(self, velo: torch.Tensor) -> None:
         s = f"""
-  &velocities in Bohr/au
+  &velocities in Angstrom/au
 -------------------------------------------------------------------------------
 {self._format_atomic_info(velo)}-------------------------------------------------------------------------------
 """
@@ -151,7 +150,7 @@ class TrajLogger(Logger):
         s = ''
         for i in range(self._nstates):
             s += f"""
-  &gradient state             {i} in Eh/Bohr
+  &gradient state             {i} in Hartree/Angstrom
 -------------------------------------------------------------------------------
 {self._format_atomic_info(forces[i])}-------------------------------------------------------------------------------
 """ 

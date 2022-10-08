@@ -5,6 +5,8 @@ STATUS: NOT TESTED
 
 import torch
 
+from solvent_namd import utils
+
 from typing import NamedTuple, Dict
 
 
@@ -25,6 +27,9 @@ def _ml_forces(energies: torch.Tensor, pos: torch.Tensor) -> torch.Tensor:
         )[0]
         forces.append(f * 0.7182231545448303)
     forces = torch.stack(forces, dim=0)
+    # print(forces)
+    # import sys
+    # sys.exit(0)
 
     return forces
 
@@ -36,7 +41,7 @@ def ml_energies_forces(
     e = model(structure) * 0.7182231545448303 + -36152.6796875
     f = _ml_forces(e.squeeze(), structure['pos'])
 
-    return EnergiesForces(e.clone(), f.clone())
+    return EnergiesForces(utils.ev_to_hartree(e).clone(), utils.ev_to_hartree(f).clone())
 
 
 if __name__ == '__main__':

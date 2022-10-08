@@ -75,7 +75,7 @@ class NAMD():
             (None)
 
         """
-        assert init_cond.shape == torch.Size([ntraj, 2, natoms, 3])
+        # assert init_cond.shape == torch.Size([ntraj, 2, natoms, 3])
 
         self._ncores = ncores
         self._model = model
