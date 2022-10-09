@@ -6,6 +6,7 @@ STATUS: DEV
 import os
 import abc
 import time
+import glob
 import torch
 
 from typing import List
@@ -16,23 +17,27 @@ class Logger:
 
     def __init__(
             self,
-            f: str,
+            root_dir: str,
             ntraj: int,
             delta_t: float,
             nsteps: int
         ) -> None:
-        self._f = f 
+        self._root_dir = root_dir 
         self._ntraj = ntraj
         self._delta_t = delta_t
         self._nsteps = nsteps
-        if os.path.exists(f):
-            open(f, 'w').close()
-        else:
-            print(f'creating {f}')
-            open(f, 'x').close()
 
-    def _log(self, msg: str) -> None:
-        with open(self._f, 'a') as file:
+    @staticmethod
+    def _create_dir(d: str) -> None:
+        if os.path.exists(d):
+            for f in glob.glob(f'{d}/*'):
+                os.remove(f)
+        else:
+            os.makedirs(d)
+
+    @staticmethod
+    def _log(msg: str, f: str) -> None:
+        with open(f, 'a') as file:
             file.write(msg)
 
     @abc.abstractmethod
@@ -51,16 +56,24 @@ class TrajLogger(Logger):
 
     def __init__(
             self,
-            f: str,
+            root_dir: str,
             traj: int,
             ntraj: int,
+            natoms: int,
             delta_t: float,
             nsteps: int,
             atom_strings: List[str],
             nstates: int
         ) -> None:
-        super().__init__(f, ntraj, delta_t, nsteps)
+        super().__init__(root_dir, ntraj, delta_t, nsteps)
+        self._name = f'traj_{traj}'
+        self._dir = os.path.join(root_dir, self._name)
+        self._create_dir(self._dir)
+        self._log_f = os.path.join(self._dir, f'{self._name}.log')
+        self._md_xyz_f = os.path.join(self._dir, f'{self._name}.md.xyz')
+        self._md_energy_f = os.path.join(self._dir, f'{self._name}.md.energy')
         self._traj = traj
+        self._natoms = natoms
         self._atom_strings = atom_strings 
         self._nstates = nstates
         self._srt_time = time.perf_counter()
@@ -76,7 +89,7 @@ class TrajLogger(Logger):
  Trajectory ID: traj-{self._traj}
 
 """
-        self._log(s)
+        self._log(s, self._log_f)
     
     def log_termination(
             self,
@@ -103,7 +116,7 @@ class TrajLogger(Logger):
 
  *** Terminated ***
 """
-        self._log(s)
+        self._log(s, self._log_f)
 
     def log_step(
             self,
@@ -131,12 +144,19 @@ class TrajLogger(Logger):
         return s
 
     def _log_coords(self, coords: torch.Tensor) -> None:
-        s = f"""
+        formatted = self._format_atomic_info(coords)
+        s_log = f"""
   &coordinates in Angstrom
 -------------------------------------------------------------------------------
-{self._format_atomic_info(coords)}-------------------------------------------------------------------------------
+{formatted}-------------------------------------------------------------------------------
 """
-        self._log(s)
+        self._log(s_log, self._log_f)
+        s_md_xyz = f"""
+{self._natoms}
+
+{formatted}
+"""
+        self._log(s_md_xyz, self._md_xyz_f)
 
     def _log_velo(self, velo: torch.Tensor) -> None:
         s = f"""
@@ -144,7 +164,7 @@ class TrajLogger(Logger):
 -------------------------------------------------------------------------------
 {self._format_atomic_info(velo)}-------------------------------------------------------------------------------
 """
-        self._log(s)
+        self._log(s, self._log_f)
 
     def _log_forces(self, forces: torch.Tensor) -> None:
         s = ''
@@ -154,10 +174,16 @@ class TrajLogger(Logger):
 -------------------------------------------------------------------------------
 {self._format_atomic_info(forces[i])}-------------------------------------------------------------------------------
 """ 
-        self._log(s)
+        self._log(s, self._log_f)
 
     def _log_energies(self, energies: torch.Tensor) -> None:
-        NotImplemented()
+        l = energies.size(dim=0)
+        s = ''
+        for i, e in enumerate(energies):
+            s += str(e.item())
+            if i != l - 1:
+                s += '    '
+        self._log(s, self._md_energy_f)
              
     def _log_state(self, state: int) -> None:
         NotImplemented()
@@ -166,7 +192,7 @@ class TrajLogger(Logger):
 class NAMDLogger(Logger):
     def __init__(
             self,
-            f: str,
+            root_dir: str,
             ntraj: int,
             delta_t: float,
             nsteps: int,
@@ -176,7 +202,9 @@ class NAMDLogger(Logger):
             natoms: int,
             nstates: int
         ) -> None:
-        super().__init__(f, ntraj, delta_t, nsteps)
+        super().__init__(root_dir, ntraj, delta_t, nsteps)
+        self._create_dir(root_dir)
+        self._log_f = os.path.join(root_dir, 'namd.log')
         self._srt_time = time.perf_counter()
         self._ncores = ncores
         self._description = description
@@ -200,7 +228,7 @@ class NAMDLogger(Logger):
  Number of electronic states: {self._nstates}
 
 """
-        self._log(s)
+        self._log(s, self._log_f)
     
     def log_termination(
             self,
@@ -220,4 +248,4 @@ class NAMDLogger(Logger):
 
  *** Happy Landing ***
  """
-        self._log(s)
+        self._log(s, self._log_f)

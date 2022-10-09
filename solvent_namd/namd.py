@@ -146,11 +146,11 @@ class NAMD():
         return cls(**d)
 
     def _run_traj(self, traj_num: int) -> int:
-        traj_id = f'traj-{traj_num}'
         traj_lg = logger.TrajLogger(
-            f=os.path.join(self._log_dir, f'{traj_id}.log'),
+            root_dir=self._log_dir,
             traj=traj_num,
             ntraj=self._ntraj,
+            natoms=self._natoms,
             delta_t=self._delta_t,
             nsteps=self._nsteps,
             atom_strings=self._atom_strings,
@@ -189,7 +189,7 @@ class NAMD():
 
     def run(self) -> None:
         lg = logger.NAMDLogger(
-            f=os.path.join(self._log_dir, 'traj-all.log'),
+            root_dir=self._log_dir,
             ntraj=self._ntraj,
             delta_t=self._delta_t,
             nsteps=self._nsteps,
