@@ -1,6 +1,7 @@
 instance:
-  ncores: 1
-  ntraj: 1
+  ncores: 10
+  device: 'cpu'
+  ntraj: 10
   prop_duration: 100
   delta_t: 0.5
   natoms: 51
@@ -16,10 +17,13 @@ instance:
     7619408953831620358: 'C',
     -1882636517035687140: 'O'
   }
-  ic_e_thresh: 0.0 # not used
-  isc_e_thresh: 0.0 # not used
-  max_hop: 2 # not used
   log_dir: "cyclopropenone-15-waters-namd"
   model_name: "e3nn water cluster model"
   description: "Dynamics for cyclopropenone in 15 explicit water molecules."
   nhistory: 1
+  e_shift: -833713.75
+  e_scale: 17.097335815429688
+  f_scale: 17.097335815429688
+  ic_e_thresh: 0.0 # not used
+  isc_e_thresh: 0.0 # not used
+  max_hop: 2 # not used

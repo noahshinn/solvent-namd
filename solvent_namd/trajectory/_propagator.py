@@ -5,7 +5,15 @@ STATUS: DEV
 
 import torch
 
-from solvent_namd import computer, logger
+from solvent_namd.logger import TrajLogger
+from solvent_namd.computer import (
+    ml_energies_forces,
+    verlet_coords,
+    verlet_velo,
+    ke,
+    reset_velo,
+    gsh
+)
 from solvent_namd.trajectory import TrajectoryHistory, Snapshot
 
 from solvent_namd import types
@@ -15,9 +23,13 @@ from typing import List
 class TrajectoryPropagator:
     def __init__(
             self,
-            logger: logger.TrajLogger,
+            device: str,
+            logger: TrajLogger,
             nhistory: int,
             model: torch.nn.Module,
+            e_shift: float,
+            e_scale: float,
+            f_scale: float,
             init_state: int,
             nstates: int,
             natoms: int,
@@ -64,8 +76,12 @@ class TrajectoryPropagator:
         """
         assert sh_method.upper() == 'GSH' or sh_method.upper() == 'FSSH'
 
+        self._device = device
         self._logger = logger
         self._model = model
+        self._e_shift = e_shift 
+        self._e_scale = e_scale 
+        self._f_scale = f_scale 
 
         self._iter = 0
         self._nsteps = nsteps
@@ -112,11 +128,9 @@ class TrajectoryPropagator:
         self._save_snapshot()
         self._shift(mode='NUCLEAR')
         self._nuclear()
-        # print(self._cur_energies)
-        # print(self._cur_forces[1])
         
+        # TODO: state hopping
         # self._shift(mode='ELECTRONIC')
-        # TODO: implement
         # self._surface_hopping()
         # self._reset_velo()
 
@@ -132,16 +146,7 @@ class TrajectoryPropagator:
             # self._scale_kinetic_energy()
             # return
 
-        self._cur_energies, self._cur_forces = computer.ml_energies_forces(
-            model=self._model,
-            structure={
-                'x': self._atom_types,
-                'pos': self._cur_coords.clone().detach(),
-                'z': self._mass
-            }
-        )
-
-        self._cur_coords = computer.verlet_coords(
+        self._cur_coords = verlet_coords(
             state=self._cur_state,
             coords=self._cur_coords,
             mass=self._mass,
@@ -150,8 +155,7 @@ class TrajectoryPropagator:
             delta_t=self._delta_t
         )
 
-
-        self._cur_velo = computer.verlet_velo(
+        self._cur_velo = verlet_velo(
             state=self._cur_state,
             coords=self._cur_coords,
             mass=self._mass,
@@ -161,18 +165,33 @@ class TrajectoryPropagator:
             delta_t=self._delta_t
         )
 
-        self._kinetic_energy = computer.ke(
+        self._cur_energies, self._cur_forces = ml_energies_forces(
+            model=self._model,
+            structure={
+                'x': self._atom_types,
+                'pos': self._cur_coords.clone().detach(),
+                'z': self._mass
+            },
+            e_shift=self._e_shift,
+            e_scale=self._e_scale,
+            f_scale=self._f_scale,
+            units='kcal'
+        )
+
+        self._kinetic_energy = ke(
             mass=self._mass,
             velo=self._cur_velo
         )
 
+    # TODO
+    """
     def _surface_hopping(self) -> None:
         if self._sh_method == 'FSSH':
             # TODO
             NotImplemented()
         else:
             # FIXME: state mult
-            a, h, d, v, has_hopped, state = computer.gsh(
+            a, h, d, v, has_hopped, state = gsh(
                 state=self._cur_state,
                 state_mult=self._state_mult,
                 mass=self._mass,
@@ -197,6 +216,7 @@ class TrajectoryPropagator:
             self._cur_velo = v
             self._has_hopped = has_hopped 
             self._cur_state = state
+    """
 
     # TODO: implement
     def _is_valid_traj(self) -> bool:
@@ -229,7 +249,7 @@ class TrajectoryPropagator:
 
     # FIXME: check if needed     
     def _reset_velo(self) -> None:
-        self._cur_velo = computer.reset_velo(
+        self._cur_velo = reset_velo(
             mass=self._mass,
             coords=self._cur_coords,
             velo=self._cur_velo

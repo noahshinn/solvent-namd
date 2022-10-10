@@ -9,7 +9,18 @@ import torch
 import inspect
 from joblib import Parallel, delayed
 
-from solvent_namd import utils, logger, trajectory, computer
+from solvent_namd.utils import (
+    InvalidInputError
+)
+from solvent_namd.computer import (
+    one_hot_to_atom_string,
+    one_hot_to_mass,
+    split_terminated
+)
+from solvent_namd.trajectory import (
+    TrajectoryPropagator
+)
+from solvent_namd.logger import TrajLogger, NAMDLogger
 
 from typing import Dict, Type, TypeVar, List, Optional
 
@@ -60,7 +71,11 @@ class NAMD():
     def __init__(
             self,
             ncores: int,
+            device: str,
             model: torch.nn.Module,
+            e_shift: float,
+            e_scale: float,
+            f_scale: float,
             ntraj: int,
             prop_duration: float,
             delta_t: float,
@@ -97,7 +112,11 @@ class NAMD():
         # assert init_cond.shape == torch.Size([ntraj, 2, natoms, 3])
 
         self._ncores = ncores
+        self._device = device
         self._model = model
+        self._e_shift = e_shift 
+        self._e_scale = e_scale 
+        self._f_scale = f_scale 
         self._ntraj = ntraj
         self._prop_duration = prop_duration
         self._delta_t = delta_t
@@ -105,8 +124,8 @@ class NAMD():
         self._nstates = nstates 
         self._init_cond = init_cond
         self._atom_types = atom_types
-        self._mass = computer.one_hot_to_mass(atom_types, one_hot_mass_key)
-        self._atom_strings = computer.one_hot_to_atom_string(atom_types, one_hot_type_key)
+        self._mass = one_hot_to_mass(atom_types, one_hot_mass_key)
+        self._atom_strings = one_hot_to_atom_string(atom_types, one_hot_type_key)
         self._init_state = init_state
         self._nsteps = int(prop_duration / delta_t)
         self._ic_e_thresh = ic_e_thresh
@@ -139,14 +158,14 @@ class NAMD():
         params = inspect.getfullargspec(NAMD.__init__).args
         for k in d:
             if not k in params:
-                raise utils.InvalidInputError(f'input `{k}` was given but is not a valid input')
+                raise InvalidInputError(f'input `{k}` was given but is not a valid input')
         for p in params:
             if p != 'self' and not p in d:
-                raise utils.InvalidInputError(f'input `{p}` was not given in input')
+                raise InvalidInputError(f'input `{p}` was not given in input')
         return cls(**d)
 
     def _run_traj(self, traj_num: int) -> int:
-        traj_lg = logger.TrajLogger(
+        traj_lg = TrajLogger(
             root_dir=self._log_dir,
             traj=traj_num,
             ntraj=self._ntraj,
@@ -157,10 +176,14 @@ class NAMD():
             nstates=self._nstates
         )
         traj_lg.log_header()
-        traj = trajectory.TrajectoryPropagator(
+        traj = TrajectoryPropagator(
+            device=self._device,
             logger=traj_lg,
             nhistory=self._nhistory,
             model=self._model,
+            e_shift=self._e_shift,
+            e_scale=self._e_scale,
+            f_scale=self._f_scale,
             init_state=self._init_state,
             nstates=self._nstates,
             natoms=self._natoms,
@@ -188,7 +211,7 @@ class NAMD():
         return 1
 
     def run(self) -> None:
-        lg = logger.NAMDLogger(
+        lg = NAMDLogger(
             root_dir=self._log_dir,
             ntraj=self._ntraj,
             delta_t=self._delta_t,
@@ -200,7 +223,7 @@ class NAMD():
             nstates=self._nstates
         )
         res = Parallel(n_jobs=self._ncores)(delayed(self._run_traj)(i) for i in range(self._ntraj))
-        s, t = computer.split_terminated(res)
+        s, t = split_terminated(res)
 
         lg.log_termination(
             nterminated=t,

@@ -9,6 +9,8 @@ import time
 import glob
 import torch
 
+from solvent_namd.utils import bohr_to_angstrom
+
 from typing import List
 
 
@@ -133,9 +135,10 @@ class TrajLogger(Logger):
         # self._log_state(state)
 
     def _format_atomic_info(self, x: torch.Tensor) -> str:
+        angstroms = bohr_to_angstrom(x)
         assert x.size(dim=1) == 3
         s = ''
-        for i, l in enumerate(x):
+        for i, l in enumerate(angstroms):
             a = self._atom_strings[i]
             x_c = l[0]
             y_c = l[1]
@@ -151,11 +154,9 @@ class TrajLogger(Logger):
 {formatted}-------------------------------------------------------------------------------
 """
         self._log(s_log, self._log_f)
-        s_md_xyz = f"""
-{self._natoms}
+        s_md_xyz = f"""{self._natoms}
 
-{formatted}
-"""
+{formatted}"""
         self._log(s_md_xyz, self._md_xyz_f)
 
     def _log_velo(self, velo: torch.Tensor) -> None:
