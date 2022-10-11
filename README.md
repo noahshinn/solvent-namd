@@ -1,7 +1,7 @@
 # SolventDynamics
 SolventDynamics is an open-source code for computing accelerated non-adiabatic molecular dynamics by utilizing machine learning inferred energy and force vectors.
 
-**PLEASE NOTE:** the Solvent Dynamics code is still under active development.
+**PLEASE NOTE:** the Solvent Dynamics code is still under active development. Single-state dynamics can be performed with this current version. The FSSH algorithm is in dev status.
 
 ## Installation
 Python >= 3.7
