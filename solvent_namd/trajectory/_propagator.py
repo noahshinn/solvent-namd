@@ -4,6 +4,8 @@ STATUS: DEV
 """
 
 import torch
+from adptv_smpl import AdaptiveSamplingWorker
+from torch_geometric.data.data import Data
 
 from solvent_namd.logger import TrajLogger
 from solvent_namd.computer import (
@@ -228,6 +230,8 @@ class TrajectoryPropagator:
         self._e_thresh = ... # placeholder
         self._f_thresh = ... # placeholder
         qm_calculator = ... # placeholder
+        self._dataset = ... # placeholder
+        self._as_worker = AdaptiveSamplingWorker(self._dataset) # type: ignore
         e1, f1 = ml_energies_forces(
             model=self._model1, # type: ignore
             structure={
@@ -253,10 +257,21 @@ class TrajectoryPropagator:
             units='kcal'
         )
         if (e1 - e2).abs() > self._e_thresh or (f1 - f2).abs() > self._f_thresh:
-            self._cur_energies, self._cur_forces = qm_calculator.sp( # type: ignore
+            e, f = qm_calculator.sp( # type: ignore
                 species=self._atom_strings,
                 coords=self._cur_coords.clone().detach()
             )
+            # TODO: dict
+            self._as_worker.save_structure(
+                Data(
+                    x=self._atom_types,
+                    pos=self._cur_coords.clone().detach(),
+                    energies=e,
+                    forces=f
+                )
+            )
+            self._cur_energies = e
+            self._cur_forces = f
         else:
             self._cur_energies = (e1 + e2) / 2
             self._cur_forces = (f1 + f2) / 2
