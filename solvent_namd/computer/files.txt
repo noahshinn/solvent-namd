@@ -1,0 +1,24 @@
+1. orbital file
+  - .StrOrb
+  - constant throughout file
+2. xyz file
+  - .xyz
+  file add _ for basis information
+3. input file
+  - .inp
+  - CIRoot (nstates, highest state, 1)
+    - for cyp: 3, 3, 1
+  - &ALASKA ROOT = i + 1 for i in range(nstates)
+4. bash submit file
+  - .sh
+  - MOLCAS ENV variables
+
+5. check for happy landing
+  - .log file
+  - "# Happy Landing! #"
+
+6. try lower basis set for faster compute
+
+7. launch on multiple cores in parallel
+
+8. use discovery

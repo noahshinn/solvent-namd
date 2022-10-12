@@ -250,3 +250,51 @@ class NAMDLogger(Logger):
  *** Happy Landing ***
  """
         self._log(s, self._log_f)
+
+class AdptvSmplLogger(Logger):
+    def __init__(
+            self,
+            root_dir: str,
+            ntraj: int,
+            delta_t: float,
+            nsteps: int,
+            ncores: int,
+            description: str,
+            model_name: str,
+            natoms: int,
+            nstates: int
+        ) -> None:
+        super().__init__(root_dir, ntraj, delta_t, nsteps)
+        self._create_dir(root_dir)
+        self._log_f = os.path.join(root_dir, 'namd.log')
+        self._srt_time = time.perf_counter()
+        self._ncores = ncores
+        self._description = description
+        self._model_name = model_name
+        self._natoms = natoms
+        self._nstates = nstates
+
+    def log_header(self) -> None:
+        NotImplemented()
+
+    def log_termination(
+            self,
+            nstructures: int,
+            ntraj: int,
+            prop_duration: float
+        ) -> None:
+        s = f"""
+ -----------------------------------------------------------------------------
+
+ Wall time: {time.perf_counter() - self._srt_time:.2f}(s)
+ Number of new structures collected: {nstructures}
+ Total number of trajectories propagated: {ntraj}
+ Interval: {self._delta_t}(fs)
+ Goal propagation duration: {prop_duration}(fs)
+
+ *** Happy Landing ***
+ """
+        self._log(s, self._log_f)
+
+    def log_qm_call(self) -> None:
+        NotImplemented()

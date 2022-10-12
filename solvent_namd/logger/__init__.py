@@ -1,1 +1,1 @@
-from ._logger import TrajLogger, NAMDLogger
+from ._logger import TrajLogger, NAMDLogger, AdptvSmplLogger

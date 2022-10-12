@@ -4,9 +4,9 @@ STATUS: DEV
 """
 
 import torch
-from adptv_smpl import AdaptiveSamplingWorker
 from torch_geometric.data.data import Data
 
+from solvent_namd.adptv_smpl import AdaptiveSamplingWorker
 from solvent_namd.logger import TrajLogger
 from solvent_namd.computer import (
     ml_energies_forces,

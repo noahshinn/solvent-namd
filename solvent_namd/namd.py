@@ -8,6 +8,7 @@ import glob
 import torch
 import inspect
 from joblib import Parallel, delayed
+from torch_geometric.data.data import Data
 
 from solvent_namd.utils import (
     InvalidInputError
@@ -20,7 +21,12 @@ from solvent_namd.computer import (
 from solvent_namd.trajectory import (
     TrajectoryPropagator
 )
-from solvent_namd.logger import TrajLogger, NAMDLogger
+from solvent_namd.logger import (
+    TrajLogger,
+    NAMDLogger,
+    AdptvSmplLogger
+)
+from solvent_namd.adptv_smpl import AdaptiveSamplingManager
 
 from typing import Dict, Type, TypeVar, List, Optional
 
@@ -35,12 +41,14 @@ class NAMD():
     >>> model = Model(*args, **kwargs)
     >>> model.load_state_dict(torch.load('model.pt'))
     >>> model.eval()
+    >>> dataset = ...
     >>> init_cond = torch.load('init_cond.pt')
     >>> atom_types = torch.load('atom_types.pt') 
     >>> constants = yaml.safe_load(pathlib.Path('constants.yml').read_text())['instance']
     >>> namd = NAMD.deserialize(
     ...     d=constants,
-    ...     model=constants,
+    ...     model=model,
+    ...     dataset=dataset
     ...     init_cond=init_cond,
     ...     atom_types=atom_types
     ... )
@@ -89,6 +97,7 @@ class NAMD():
             ic_e_thresh: float,
             isc_e_thresh: float,
             max_hop: int,
+            dataset: Optional[List[Data]] = None,
             log_dir: str = 'out',
             model_name: str = 'Unnamed',
             description: str = 'No description',
@@ -144,17 +153,24 @@ class NAMD():
         else:
             self._nhistory = self._nsteps
 
+        self._is_adptv_sampling = not dataset is None
+        if self._is_adptv_sampling:
+            assert not dataset is None
+            self._adptv_smpl_manager = AdaptiveSamplingManager(dataset=dataset)
+    
     @classmethod
     def deserialize(
             cls: Type[T],
             d: Dict,
             model: torch.nn.Module,
             init_cond: torch.Tensor,
-            atom_types: torch.Tensor
+            atom_types: torch.Tensor,
+            dataset: Optional[List[Data]] = None
         ) -> T:
         d['model'] = model
         d['init_cond'] = init_cond
         d['atom_types'] = atom_types
+        d['dataset'] = dataset
         params = inspect.getfullargspec(NAMD.__init__).args
         for k in d:
             if not k in params:
@@ -200,6 +216,7 @@ class NAMD():
         )
         for step in range(self._nsteps):
             traj.propagate()
+            # FIXME: handle adaptive sampling return number of structures
             should_terminate, exit_code = traj.status()
             # FIXME: here
             if should_terminate:
@@ -209,24 +226,47 @@ class NAMD():
                 )
                 return exit_code
         return 1
+    
+    def _deploy(self) -> List[int]:
+        return Parallel(n_jobs=self._ncores)(delayed(self._run_traj)(i) for i in range(self._ntraj))
 
     def run(self) -> None:
-        lg = NAMDLogger(
-            root_dir=self._log_dir,
-            ntraj=self._ntraj,
-            delta_t=self._delta_t,
-            nsteps=self._nsteps,
-            ncores=self._ncores,
-            description=self._description,
-            model_name=self._model_name,
-            natoms=self._natoms,
-            nstates=self._nstates
-        )
-        res = Parallel(n_jobs=self._ncores)(delayed(self._run_traj)(i) for i in range(self._ntraj))
-        s, t = split_terminated(res)
+        if self._is_adptv_sampling:
+            lg = AdptvSmplLogger(
+                root_dir=self._log_dir,
+                ntraj=self._ntraj,
+                delta_t=self._delta_t,
+                nsteps=self._nsteps,
+                ncores=self._ncores,
+                description=self._description,
+                model_name=self._model_name,
+                natoms=self._natoms,
+                nstates=self._nstates
+            )
+            # FIXME: count added structures
+            res = self._deploy()
+            lg.log_termination(
+                nstructures=sum(res), # placeholder
+                ntraj=self._ntraj,
+                prop_duration=self._prop_duration
+            ) 
+        else:
+            lg = NAMDLogger(
+                root_dir=self._log_dir,
+                ntraj=self._ntraj,
+                delta_t=self._delta_t,
+                nsteps=self._nsteps,
+                ncores=self._ncores,
+                description=self._description,
+                model_name=self._model_name,
+                natoms=self._natoms,
+                nstates=self._nstates
+            )
+            res = self._deploy()
+            s, t = split_terminated(res)
+            lg.log_termination(
+                nterminated=t,
+                nsuccessful=s,
+                prop_duration=self._prop_duration
+            )
 
-        lg.log_termination(
-            nterminated=t,
-            nsuccessful=s,
-            prop_duration=self._prop_duration
-        )
