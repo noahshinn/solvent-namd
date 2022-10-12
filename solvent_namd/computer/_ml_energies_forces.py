@@ -10,11 +10,8 @@ import torch
 from solvent_namd.utils import kcal_to_hartree
 
 from typing import NamedTuple, Dict
+from solvent_namd.types import SPEnergiesForces
 
-
-class EnergiesForces(NamedTuple):
-    energies: torch.Tensor
-    forces: torch.Tensor
 
 def _force_grad(
         energies: torch.Tensor,
@@ -68,7 +65,7 @@ def ml_energies_forces(
         f_scale: float,
         device: str = 'cpu',
         units: str = 'kcal'
-    ) -> EnergiesForces:
+    ) -> SPEnergiesForces:
     structure['pos'].requires_grad = True
     y = model(structure)
     dy_dpos = _force_grad(y, structure['pos'], device=device)
@@ -77,4 +74,4 @@ def ml_energies_forces(
     if units == 'kcal':
         e = kcal_to_hartree(e)
         f = kcal_to_hartree(f)
-    return EnergiesForces(e.detach(), f.detach())
+    return SPEnergiesForces(e.detach(), f.detach())

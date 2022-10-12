@@ -14,9 +14,12 @@ from solvent_namd.computer import (
     reset_velo,
     gsh
 )
-from solvent_namd.trajectory import TrajectoryHistory, Snapshot
+from solvent_namd.trajectory import Snapshot
 
-from solvent_namd import types
+from solvent_namd.types import (
+    SPEnergiesForces,
+    TerminationStatus
+)
 from typing import List
 
 
@@ -85,7 +88,6 @@ class TrajectoryPropagator:
 
         self._iter = 0
         self._nsteps = nsteps
-        self._traj = TrajectoryHistory(max_length=nhistory)
         self._atom_types = atom_types
         self._natoms = natoms
         self._nstates = nstates
@@ -165,18 +167,19 @@ class TrajectoryPropagator:
             delta_t=self._delta_t
         )
 
-        self._cur_energies, self._cur_forces = ml_energies_forces(
-            model=self._model,
-            structure={
-                'x': self._atom_types,
-                'pos': self._cur_coords.clone().detach(),
-                'z': self._mass
-            },
-            e_shift=self._e_shift,
-            e_scale=self._e_scale,
-            f_scale=self._f_scale,
-            units='kcal'
-        )
+        self._sp()
+        # self._cur_energies, self._cur_forces = ml_energies_forces(
+            # model=self._model,
+            # structure={
+                # 'x': self._atom_types,
+                # 'pos': self._cur_coords.clone().detach(),
+                # 'z': self._mass
+            # },
+            # e_shift=self._e_shift,
+            # e_scale=self._e_scale,
+            # f_scale=self._f_scale,
+            # units='kcal'
+        # )
 
         self._kinetic_energy = ke(
             mass=self._mass,
@@ -218,11 +221,51 @@ class TrajectoryPropagator:
             self._cur_state = state
     """
 
+    def _sp(self) -> None:
+        # FIXME: use 2 models 
+        self._model1 = ... # placeholder
+        self._model2 = ... # placeholder
+        self._e_thresh = ... # placeholder
+        self._f_thresh = ... # placeholder
+        qm_calculator = ... # placeholder
+        e1, f1 = ml_energies_forces(
+            model=self._model1, # type: ignore
+            structure={
+                'x': self._atom_types,
+                'pos': self._cur_coords.clone().detach(),
+                'z': self._mass
+            },
+            e_shift=self._e_shift,
+            e_scale=self._e_scale,
+            f_scale=self._f_scale,
+            units='kcal'
+        )
+        e2, f2 = ml_energies_forces(
+            model=self._model2, # type: ignore
+            structure={
+                'x': self._atom_types,
+                'pos': self._cur_coords.clone().detach(),
+                'z': self._mass
+            },
+            e_shift=self._e_shift,
+            e_scale=self._e_scale,
+            f_scale=self._f_scale,
+            units='kcal'
+        )
+        if (e1 - e2).abs() > self._e_thresh or (f1 - f2).abs() > self._f_thresh:
+            self._cur_energies, self._cur_forces = qm_calculator.sp( # type: ignore
+                species=self._atom_strings,
+                coords=self._cur_coords.clone().detach()
+            )
+        else:
+            self._cur_energies = (e1 + e2) / 2
+            self._cur_forces = (f1 + f2) / 2
+
     # TODO: implement
     def _is_valid_traj(self) -> bool:
         return True
  
-    def status(self) -> types.TerminationStatus:
+    def status(self) -> TerminationStatus:
         """
         Determines if the current trajectory should be propagated further.
 
@@ -234,10 +277,10 @@ class TrajectoryPropagator:
 
         """
         if self._iter == self._nsteps:
-            return types.TerminationStatus(should_terminate=True, exit_code=1)
+            return TerminationStatus(should_terminate=True, exit_code=1)
         if not self._is_valid_traj():
-            return types.TerminationStatus(should_terminate=True, exit_code=2)
-        return types.TerminationStatus(should_terminate=False, exit_code=0)
+            return TerminationStatus(should_terminate=True, exit_code=2)
+        return TerminationStatus(should_terminate=False, exit_code=0)
 
     # FIXME: check if needed
     def _scale_kinetic_energy(self) -> None:
@@ -278,7 +321,6 @@ class TrajectoryPropagator:
             energies=self._cur_energies.clone().detach()
         )
         snapshot.log(self._logger)
-        self._traj.add(snapshot)
 
     def _shift(self, mode: str) -> None:
         """

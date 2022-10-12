@@ -17,6 +17,10 @@ class TerminationStatus(NamedTuple):
     should_terminate: bool
     exit_code: int
 
+class SPEnergiesForces(NamedTuple):
+    energies: torch.Tensor
+    forces: torch.Tensor
+
 class SurfaceHoppingMetrics(NamedTuple):
     """
     a: state-density matrix
