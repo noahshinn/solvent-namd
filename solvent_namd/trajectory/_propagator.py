@@ -30,11 +30,7 @@ class TrajectoryPropagator:
             self,
             device: str,
             logger: TrajLogger,
-            nhistory: int,
             model: torch.nn.Module,
-            e_shift: float,
-            e_scale: float,
-            f_scale: float,
             init_state: int,
             nstates: int,
             natoms: int,
@@ -84,9 +80,6 @@ class TrajectoryPropagator:
         self._device = device
         self._logger = logger
         self._model = model
-        self._e_shift = e_shift 
-        self._e_scale = e_scale 
-        self._f_scale = f_scale 
 
         self._iter = 0
         self._nsteps = nsteps
@@ -239,9 +232,6 @@ class TrajectoryPropagator:
                 'pos': self._cur_coords.clone().detach(),
                 'z': self._mass
             },
-            e_shift=self._e_shift,
-            e_scale=self._e_scale,
-            f_scale=self._f_scale,
             units='kcal'
         )
         e2, f2 = ml_energies_forces(
@@ -251,9 +241,6 @@ class TrajectoryPropagator:
                 'pos': self._cur_coords.clone().detach(),
                 'z': self._mass
             },
-            e_shift=self._e_shift,
-            e_scale=self._e_scale,
-            f_scale=self._f_scale,
             units='kcal'
         )
         if (e1 - e2).abs() > self._e_thresh or (f1 - f2).abs() > self._f_thresh:
