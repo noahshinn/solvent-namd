@@ -6,13 +6,11 @@ STATUS: DEV
 import torch
 import multiprocessing
 
-from typing import Dict, Optional
+from typing import Dict
 
-SUPPORTED_CONFIGS = {
+DEFAULT_CONFIGS = {
     'ncores': multiprocessing.cpu_count(),
     'device': 'cpu',
-    'model': 'best_model.pth',
-    'init_cond': 'init_cond.pth', # initial conditions file
     'init_state': 0, # ground state
     'ntraj': 1,
     'prop_duration': 1000, # in fs
@@ -24,17 +22,34 @@ SUPPORTED_CONFIGS = {
 }
 
 
-def _set_values(d: dict) -> dict:
-    for k, v in SUPPORTED_CONFIGS.items():
-        if k not in d or d[k] is None:
-            d[k] = v
-    return d
+# FIXME: figure out privacy
+def _load_model(model_file: str) -> torch.nn.Module:
+    model = torch.jit.load(model_file)
+    model.eval()
+    return model
 
-def _load_model(model_file: str) -> torch.nn.Module: # type: ignore
-    NotImplemented()
+# TODO: better way of loading initial conditions
+def _load_init_cond(init_cond_file: str) -> torch.Tensor:
+    d = _load_file(init_cond_file)
+    if not 'init_cond' in d:
+        raise TypeError('init_cond not in file!')
+    return d['init_cond']
 
-def _load_init_cond(init_cond_file: str) -> torch.Tensor: # type: ignore
-    NotImplemented()
+def _load_file(filename: str) -> dict:
+    f_ext = filename.split('.')[1]
+    if f_ext == 'yaml':
+        import yaml
+        with open(filename) as f:
+            return yaml.load(f, Loader=yaml.Loader)
+    elif f_ext == 'json':
+        import json
+        with open(filename) as f:
+            return json.load(f)
+    elif f_ext == 'pth':
+        with open(filename) as f:
+            return torch.load(f)
+    else:
+        raise NotADirectoryError('input file not supported')
 
 class Config:
     """Config class for run parameters."""
@@ -55,32 +70,33 @@ class Config:
     model_name: str
     description: str
 
-    def __init__(self, d: Optional[dict] = None) -> None:
+    def __init__(self, d: dict) -> None:
         if d is None:
             self.content = {}
         else:
             self.content = d
 
-    def update(self, d: dict) -> None:
-        for k, v in d.items():
-            self.content[k] = v
+        if 'model' not in d:
+            raise TypeError('model not specified in input')
+        else:
+            self.content['model'] = _load_model(d['model'])
+
+        if 'init_cond' not in d:
+            raise TypeError('initial conditions file not specified in input')
+        else:
+            self.content['init_cond'] = _load_init_cond(d['init_cond'])
+        self.update()
+
+    def update(self) -> None:
+        for k, v in DEFAULT_CONFIGS.items():
+            if k not in self.content or self.content[k] is None:
+                self.content[k] = v
+
+    def as_dict(self) -> dict:
+        return self.content
 
     @staticmethod
     def from_file(filename: str):
         """Load from file"""
-        f_ext = filename.split('.')[1]
-        if f_ext == 'yaml':
-            import yaml
-            with open(filename) as f:
-                d = yaml.load(f, Loader=yaml.Loader)
-                return Config(**_set_values(d))
-        elif f_ext == 'json':
-            import json
-            with open(filename) as f:
-                d = json.load(f)
-                return Config(**_set_values(d))
-
-    @staticmethod
-    def from_dict(d: dict):
-        c = Config()
-        c.update(d)
+        d = _load_file(filename)
+        return Config(**d)

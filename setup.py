@@ -11,10 +11,9 @@ setup(
             'solvent_namd = solvent_namd.scripts.run_namd:main'
         ]
     },
-    install_requires=[
-        'joblib',
-        'numpy',
-        'pyyaml',
-        'nequip==0.5.5'
-    ]
+    # install_requires=[
+        # 'joblib',
+        # 'pyyaml',
+        # 'nequip==0.5.5'
+    # ]
 )
