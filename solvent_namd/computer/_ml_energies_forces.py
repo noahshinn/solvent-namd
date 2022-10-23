@@ -30,13 +30,13 @@ def _force_grad(
         pos (torch.Tensor): Position tensor of size (N, 3)
 
     Returns:
-        jac (torch.Tensor): Jacobian maxtrix of force tensor of size (K, N, 3)
+        jac (torch.Tensor): Jacobian matrix of force tensor of size (K, N, 3)
 
     """
     nstates = energies.size(dim=0)
     basis_vecs = torch.eye(nstates).to(device=device)
-    jac_rows = [torch.autograd.grad(-energies, pos, v, retain_graph=True)[0] for v in basis_vecs.unbind()]
-    jac = torch.stack(jac_rows, dim=0)
+    jac_rows = [torch.autograd.grad(energies, pos, v, retain_graph=True)[0] for v in basis_vecs.unbind()]
+    jac = torch.stack(jac_rows, dim=0).neg()
     return jac
 
 # def _ml_forces(energies: torch.Tensor, pos: torch.Tensor) -> torch.Tensor:

@@ -1,0 +1,3 @@
+models:
+  s0: ./s0.pth
+  s1: ./s1.pth

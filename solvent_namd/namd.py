@@ -81,9 +81,6 @@ class NAMD():
             ncores: int,
             device: str,
             model: torch.nn.Module,
-            e_shift: float,
-            e_scale: float,
-            f_scale: float,
             ntraj: int,
             prop_duration: float,
             delta_t: float,
@@ -123,9 +120,6 @@ class NAMD():
         self._ncores = ncores
         self._device = device
         self._model = model
-        self._e_shift = e_shift 
-        self._e_scale = e_scale 
-        self._f_scale = f_scale 
         self._ntraj = ntraj
         self._prop_duration = prop_duration
         self._delta_t = delta_t
@@ -195,11 +189,7 @@ class NAMD():
         traj = TrajectoryPropagator(
             device=self._device,
             logger=traj_lg,
-            nhistory=self._nhistory,
             model=self._model,
-            e_shift=self._e_shift,
-            e_scale=self._e_scale,
-            f_scale=self._f_scale,
             init_state=self._init_state,
             nstates=self._nstates,
             natoms=self._natoms,
