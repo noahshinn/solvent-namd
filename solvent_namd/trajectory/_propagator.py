@@ -9,7 +9,7 @@ from torch_geometric.data.data import Data
 from solvent_namd.adptv_smpl import AdaptiveSamplingWorker
 from solvent_namd.logger import TrajLogger
 from solvent_namd.computer import (
-    ml_energies_forces,
+    multi_model_energies_forces,
     verlet_coords,
     verlet_velo,
     ke,
@@ -44,7 +44,8 @@ class TrajectoryPropagator:
             ic_e_thresh: float,
             isc_e_thresh: float,
             max_hop: int,
-            sh_method: str = 'FSSH'
+            sh_method: str = 'FSSH',
+            units: str = 'kcal'
         ) -> None:
         """
         Initializes a trajectory propagator.
@@ -116,6 +117,7 @@ class TrajectoryPropagator:
         self._kinetic_energy = torch.tensor(0.0)
 
         self._delta_t = delta_t
+        self._units = units
 
     def propagate(self) -> None:
         """
@@ -217,51 +219,55 @@ class TrajectoryPropagator:
     """
 
     def _sp(self) -> None:
-        # FIXME: use 2 models 
-        self._model1 = ... # placeholder
-        self._model2 = ... # placeholder
-        self._e_thresh = ... # placeholder
-        self._f_thresh = ... # placeholder
-        qm_calculator = ... # placeholder
-        self._dataset = ... # placeholder
-        self._as_worker = AdaptiveSamplingWorker(self._dataset) # type: ignore
-        e1, f1 = ml_energies_forces(
-            model=self._model1, # type: ignore
-            structure={
-                'x': self._atom_types,
-                'pos': self._cur_coords.clone().detach(),
-                'z': self._mass
-            },
-            units='kcal'
-        )
-        e2, f2 = ml_energies_forces(
-            model=self._model2, # type: ignore
-            structure={
-                'x': self._atom_types,
-                'pos': self._cur_coords.clone().detach(),
-                'z': self._mass
-            },
-            units='kcal'
-        )
-        if (e1 - e2).abs() > self._e_thresh or (f1 - f2).abs() > self._f_thresh:
-            e, f = qm_calculator.sp( # type: ignore
-                species=self._atom_strings,
-                coords=self._cur_coords.clone().detach()
-            )
-            # TODO: dict
-            self._as_worker.save_structure(
-                Data(
-                    x=self._atom_types,
-                    pos=self._cur_coords.clone().detach(),
-                    energies=e,
-                    forces=f
-                )
-            )
-            self._cur_energies = e
-            self._cur_forces = f
-        else:
-            self._cur_energies = (e1 + e2) / 2
-            self._cur_forces = (f1 + f2) / 2
+        structure = ...
+        calculators = ...
+        self._cur_energies, self._cur_forces = multi_model_energies_forces(structure=structure, calculators=calculators, units=units)
+
+        # TODO: adaptive sampling?
+        # self._model1 = ... # placeholder
+        # self._model2 = ... # placeholder
+        # self._e_thresh = ... # placeholder
+        # self._f_thresh = ... # placeholder
+        # qm_calculator = ... # placeholder
+        # self._dataset = ... # placeholder
+        # self._as_worker = AdaptiveSamplingWorker(self._dataset) # type: ignore
+        # e1, f1 = ml_energies_forces(
+            # model=self._model1, # type: ignore
+            # structure={
+                # 'x': self._atom_types,
+                # 'pos': self._cur_coords.clone().detach(),
+                # 'z': self._mass
+            # },
+            # units='kcal'
+        # )
+        # e2, f2 = ml_energies_forces(
+            # model=self._model2, # type: ignore
+            # structure={
+                # 'x': self._atom_types,
+                # 'pos': self._cur_coords.clone().detach(),
+                # 'z': self._mass
+            # },
+            # units='kcal'
+        # )
+        # if (e1 - e2).abs() > self._e_thresh or (f1 - f2).abs() > self._f_thresh:
+            # e, f = qm_calculator.sp( # type: ignore
+                # species=self._atom_strings,
+                # coords=self._cur_coords.clone().detach()
+            # )
+            # # TODO: dict
+            # self._as_worker.save_structure(
+                # Data(
+                    # x=self._atom_types,
+                    # pos=self._cur_coords.clone().detach(),
+                    # energies=e,
+                    # forces=f
+                # )
+            # )
+            # self._cur_energies = e
+            # self._cur_forces = f
+        # else:
+            # self._cur_energies = (e1 + e2) / 2
+            # self._cur_forces = (f1 + f2) / 2
 
     # TODO: implement
     def _is_valid_traj(self) -> bool:

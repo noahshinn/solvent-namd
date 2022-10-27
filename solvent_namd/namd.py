@@ -7,6 +7,7 @@ import os
 import glob
 import torch
 import inspect
+from nequip.ase import NequIPCalculator
 from joblib import Parallel, delayed
 from torch_geometric.data.data import Data
 
@@ -55,86 +56,54 @@ class NAMD():
     >>> namd.run()
 
     """
-    _ncores: int
-    _model: torch.nn.Module
-    _ntraj: int
-    _nsteps: int
-    _prop_duration: float
-    _delta_t: float
-    _natoms: int
-    _nstates: int
-    _nsteps: int
-    _init_cond: torch.Tensor
-    _init_state: int
-    _atom_types: torch.Tensor
-    _mass: torch.Tensor
-    _atom_strings: List[str]
-    _ic_e_thresh: float
-    _isc_e_thresh: float
-    _max_hop: int
-    _log_dir: str
-    _model_name: str
-    _description: str
+
+    root: str
+    run_name: str
+    description: str
+    
+    calculators: Dict[str, NequIPCalculator]
+
+    init_cond: torch.Tensor
+    init_state: int
+    species: List[str]
+
+    ncores: int
+    device: str
+
+    ntraj: int
+    prop_duration: float
+    delta_t: float
+    natoms: int
+    nstates: int
+    nsteps: int
+    mass: torch.Tensor
+
+    # TODO: surface hopping
+    # _ic_e_thresh: float
+    # _isc_e_thresh: float
+    # _max_hop: int
 
     def __init__(
             self,
+            root: str,
+            run_name: str,
+            description: str,
+            calculators: Dict[str, NequIPCalculator],
+            init_cond: torch.Tensor,
+            init_state: int,
+            species: List[str],
             ncores: int,
             device: str,
-            model: torch.nn.Module,
             ntraj: int,
             prop_duration: float,
             delta_t: float,
             natoms: int,
             nstates: int,
-            init_cond: torch.Tensor,
-            init_state: int,
-            atom_types: torch.Tensor,
-            one_hot_mass_key: Dict[int, float],
-            one_hot_type_key: Dict[int, str],
-            ic_e_thresh: float,
-            isc_e_thresh: float,
-            max_hop: int,
-            dataset: Optional[List[Data]] = None,
-            log_dir: str = 'out',
-            model_name: str = 'Unnamed',
-            description: str = 'No description',
-            nhistory: Optional[int] = None
+            nsteps: int,
+            mass: torch.Tensor,
         ) -> None:
-        """
-        Manages all trajectory propagations.
+        """Manages all trajectory propagations."""
 
-        Args:
-            model (torch.nn.Module): A trained and loaded neural network
-                model.
-            ntraj (int): The number of trajectories to propagate.
-            prop_duration (float): The max duration of a trajectory.
-            delta_t (float): The duration between steps in a trajectory.
-            init_cond (torch.Tensor): Initial starting conditions.
-
-        Returns:
-            (None)
-
-        """
-        # assert init_cond.shape == torch.Size([ntraj, 2, natoms, 3])
-
-        self._ncores = ncores
-        self._device = device
-        self._model = model
-        self._ntraj = ntraj
-        self._prop_duration = prop_duration
-        self._delta_t = delta_t
-        self._natoms = natoms
-        self._nstates = nstates 
-        self._init_cond = init_cond
-        self._atom_types = atom_types
-        self._mass = one_hot_to_mass(atom_types, one_hot_mass_key)
-        self._atom_strings = one_hot_to_atom_string(atom_types, one_hot_type_key)
-        self._init_state = init_state
-        self._nsteps = int(prop_duration / delta_t)
-        self._ic_e_thresh = ic_e_thresh
-        self._isc_e_thresh = isc_e_thresh 
-        self._max_hop = max_hop
-        self._log_dir = log_dir
         if os.path.exists(log_dir):
             for f in glob.glob(f'{log_dir}/*'):
                 os.remove(f)

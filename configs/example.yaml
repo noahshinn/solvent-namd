@@ -2,13 +2,17 @@ root: 'results'
 run_name: 'cyclopropenone-s0'
 description: 'cyclopropenone ground state dynamics'
 
-model: 'model_file.pth'
-model_name: 'cyclopropenone ground state'
+models:
+  s0: model_file.pth'
+
 init_cond: 'initial_conditions_file.pth'
+init_state: 1  # initial electronic state population
+species: [
+  'C',
+]
 
 ncores: 1  # number of cpu cores
 device: 'cpu'  # device to run dynamics on (only cpu supported right now)
-init_state: 1  # initial electronic state population
 ntraj: 500  # number of trajectories
 prop_duration: 2000000  # total propagation duration per trajectory in fs
 delta_t: 0.5  # time step in fs

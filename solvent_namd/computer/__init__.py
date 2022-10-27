@@ -6,7 +6,8 @@ from ._adjust_velo_after_hop import adjust_velo_after_hop
 from ._verlet_coords import verlet_coords
 from ._verlet_velo import verlet_velo 
 from ._reset_velo import reset_velo
-from ._ml_energies_forces import ml_energies_forces
+from .ml_energies_forces import multi_model_energies_forces
 from ._one_hot_to_mass import one_hot_to_mass 
 from ._one_hot_to_atom_string import one_hot_to_atom_string 
 from ._split_terminated import split_terminated
+from .get_mass import get_mass
