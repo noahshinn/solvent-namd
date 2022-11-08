@@ -8,10 +8,11 @@ import abc
 import time
 import glob
 import torch
+from nequip.ase import NequIPCalculator
 
 from solvent_namd.utils import bohr_to_angstrom
 
-from typing import List
+from typing import List, Dict
 
 
 class Logger:
@@ -19,12 +20,14 @@ class Logger:
 
     def __init__(
             self,
-            root_dir: str,
+            root: str,
+            run_name: str,
             ntraj: int,
             delta_t: float,
             nsteps: int
         ) -> None:
-        self._root_dir = root_dir 
+        self._root = root
+        self._run_name = run_name
         self._ntraj = ntraj
         self._delta_t = delta_t
         self._nsteps = nsteps
@@ -54,29 +57,31 @@ class Logger:
 
 
 class TrajLogger(Logger):
-    _atom_strings: List[str]
+    _species: List[str]
 
     def __init__(
             self,
-            root_dir: str,
+            root: str,
+            run_name: str,
             traj: int,
             ntraj: int,
             natoms: int,
             delta_t: float,
             nsteps: int,
-            atom_strings: List[str],
+            species: List[str],
             nstates: int
         ) -> None:
-        super().__init__(root_dir, ntraj, delta_t, nsteps)
+        super().__init__(root, run_name, ntraj, delta_t, nsteps)
         self._name = f'traj_{traj}'
-        self._dir = os.path.join(root_dir, self._name)
+        self._dir = os.path.join(root, run_name, self._name)
         self._create_dir(self._dir)
         self._log_f = os.path.join(self._dir, f'{self._name}.log')
         self._md_xyz_f = os.path.join(self._dir, f'{self._name}.md.xyz')
         self._md_energy_f = os.path.join(self._dir, f'{self._name}.md.energy')
+        self._md_state_f = os.path.join(self._dir, f'{self._name}.md.state')
         self._traj = traj
         self._natoms = natoms
-        self._atom_strings = atom_strings 
+        self._species = species 
         self._nstates = nstates
         self._srt_time = time.perf_counter()
 
@@ -131,15 +136,15 @@ class TrajLogger(Logger):
         self._log_coords(coords)
         self._log_velo(velo)
         self._log_forces(forces)
-        # self._log_energies(energies)
-        # self._log_state(state)
+        self._log_energies(energies)
+        self._log_state(state)
 
     def _format_atomic_info(self, x: torch.Tensor) -> str:
         angstroms = bohr_to_angstrom(x)
         assert x.size(dim=1) == 3
         s = ''
         for i, l in enumerate(angstroms):
-            a = self._atom_strings[i]
+            a = self._species[i]
             x_c = l[0]
             y_c = l[1]
             z_c = l[2]
@@ -187,29 +192,31 @@ class TrajLogger(Logger):
         self._log(s, self._md_energy_f)
              
     def _log_state(self, state: int) -> None:
-        NotImplemented()
+        self._log(str(state), self._md_state_f) 
 
 
 class NAMDLogger(Logger):
     def __init__(
             self,
-            root_dir: str,
+            root: str,
+            run_name: str,
             ntraj: int,
             delta_t: float,
             nsteps: int,
             ncores: int,
             description: str,
-            model_name: str,
+            calculators: Dict[str, NequIPCalculator],
             natoms: int,
             nstates: int
         ) -> None:
-        super().__init__(root_dir, ntraj, delta_t, nsteps)
-        self._create_dir(root_dir)
-        self._log_f = os.path.join(root_dir, 'namd.log')
+        super().__init__(root, run_name, ntraj, delta_t, nsteps)
+        _dir = os.path.join(root, run_name)
+        self._create_dir(_dir)
+        self._log_f = os.path.join(_dir, 'namd.log')
         self._srt_time = time.perf_counter()
         self._ncores = ncores
         self._description = description
-        self._model_name = model_name
+        self._models_str = ", ".join(calculators.keys())
         self._natoms = natoms
         self._nstates = nstates
 
@@ -223,8 +230,9 @@ class NAMDLogger(Logger):
 
  Description: {self._description}
  Number of cores (cpu): {self._ncores}
- Energy inference model name: {self._model_name}
- Force inference model name: {self._model_name}
+ 
+ Energy inference models: {self._models_str}
+ Force inference models: {self._models_str}
  Number of atoms: {self._natoms}
  Number of electronic states: {self._nstates}
 
@@ -251,50 +259,50 @@ class NAMDLogger(Logger):
  """
         self._log(s, self._log_f)
 
-class AdptvSmplLogger(Logger):
-    def __init__(
-            self,
-            root_dir: str,
-            ntraj: int,
-            delta_t: float,
-            nsteps: int,
-            ncores: int,
-            description: str,
-            model_name: str,
-            natoms: int,
-            nstates: int
-        ) -> None:
-        super().__init__(root_dir, ntraj, delta_t, nsteps)
-        self._create_dir(root_dir)
-        self._log_f = os.path.join(root_dir, 'namd.log')
-        self._srt_time = time.perf_counter()
-        self._ncores = ncores
-        self._description = description
-        self._model_name = model_name
-        self._natoms = natoms
-        self._nstates = nstates
+# class AdptvSmplLogger(Logger):
+    # def __init__(
+            # self,
+            # root_dir: str,
+            # ntraj: int,
+            # delta_t: float,
+            # nsteps: int,
+            # ncores: int,
+            # description: str,
+            # model_name: str,
+            # natoms: int,
+            # nstates: int
+        # ) -> None:
+        # super().__init__(root_dir, ntraj, delta_t, nsteps)
+        # self._create_dir(root_dir)
+        # self._log_f = os.path.join(root_dir, 'namd.log')
+        # self._srt_time = time.perf_counter()
+        # self._ncores = ncores
+        # self._description = description
+        # self._model_name = model_name
+        # self._natoms = natoms
+        # self._nstates = nstates
 
-    def log_header(self) -> None:
-        NotImplemented()
+    # def log_header(self) -> None:
+        # NotImplemented()
 
-    def log_termination(
-            self,
-            nstructures: int,
-            ntraj: int,
-            prop_duration: float
-        ) -> None:
-        s = f"""
- -----------------------------------------------------------------------------
+    # def log_termination(
+            # self,
+            # nstructures: int,
+            # ntraj: int,
+            # prop_duration: float
+        # ) -> None:
+        # s = f"""
+ # -----------------------------------------------------------------------------
 
- Wall time: {time.perf_counter() - self._srt_time:.2f}(s)
- Number of new structures collected: {nstructures}
- Total number of trajectories propagated: {ntraj}
- Interval: {self._delta_t}(fs)
- Goal propagation duration: {prop_duration}(fs)
+ # Wall time: {time.perf_counter() - self._srt_time:.2f}(s)
+ # Number of new structures collected: {nstructures}
+ # Total number of trajectories propagated: {ntraj}
+ # Interval: {self._delta_t}(fs)
+ # Goal propagation duration: {prop_duration}(fs)
 
- *** Happy Landing ***
- """
-        self._log(s, self._log_f)
+ # *** Happy Landing ***
+ # """
+        # self._log(s, self._log_f)
 
-    def log_qm_call(self) -> None:
-        NotImplemented()
+    # def log_qm_call(self) -> None:
+        # NotImplemented()

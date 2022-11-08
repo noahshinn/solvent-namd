@@ -13,7 +13,7 @@ def main(args=None) -> None:
     namd = NAMD(**config.as_dict()) # type: ignore
     namd.run()
 
-def _parse_command_line(args=None):
+def _parse_command_line(args=None) -> Config:
     parser = argparse.ArgumentParser(description="Run ML Non-Adiabatic Molecular Dynamics")
     parser.add_argument("config", help="configuration file")
     args = parser.parse_args(args=args)

@@ -4,9 +4,9 @@ STATUS: DEV
 """
 
 import torch
-from torch_geometric.data.data import Data
+from nequip.ase import NequIPCalculator
 
-from solvent_namd.adptv_smpl import AdaptiveSamplingWorker
+# from solvent_namd.adptv_smpl import AdaptiveSamplingWorker
 from solvent_namd.logger import TrajLogger
 from solvent_namd.computer import (
     multi_model_energies_forces,
@@ -16,13 +16,12 @@ from solvent_namd.computer import (
     reset_velo,
     gsh
 )
-from solvent_namd.trajectory import Snapshot
 
 from solvent_namd.types import (
     SPEnergiesForces,
     TerminationStatus
 )
-from typing import List
+from typing import List, Dict
 
 
 class TrajectoryPropagator:
@@ -30,21 +29,20 @@ class TrajectoryPropagator:
             self,
             device: str,
             logger: TrajLogger,
-            model: torch.nn.Module,
-            init_state: int,
+            calculators: Dict[str, NequIPCalculator],
             nstates: int,
             natoms: int,
-            atom_types: torch.Tensor,
+            species: List[str],
             mass: torch.Tensor,
-            atom_strings: List[str],
+            init_state: int,
             init_coords: torch.Tensor,
             init_velo: torch.Tensor,
             delta_t: float,
             nsteps: int,
-            ic_e_thresh: float,
-            isc_e_thresh: float,
-            max_hop: int,
-            sh_method: str = 'FSSH',
+            # ic_e_thresh: float,
+            # isc_e_thresh: float,
+            # max_hop: int,
+            # sh_method: str = 'FSSH',
             units: str = 'kcal'
         ) -> None:
         """
@@ -76,19 +74,18 @@ class TrajectoryPropagator:
             None
 
         """
-        assert sh_method.upper() == 'GSH' or sh_method.upper() == 'FSSH'
+        # assert sh_method.upper() == 'GSH' or sh_method.upper() == 'FSSH'
 
         self._device = device
         self._logger = logger
-        self._model = model
+        self._calculators = calculators
 
         self._iter = 0
         self._nsteps = nsteps
-        self._atom_types = atom_types
+        self._species = species
         self._natoms = natoms
         self._nstates = nstates
         self._mass = mass
-        self._atom_strings = atom_strings
         self._cur_state = self._prev_state = init_state
         self._cur_coords = init_coords
         self._cur_velo = init_velo
@@ -109,10 +106,10 @@ class TrajectoryPropagator:
         self._prev_d = self._prev_prev_d = torch.zeros_like(self._cur_d)
 
         self._has_hopped = 'NO HOP'
-        self._ic_e_thresh = ic_e_thresh
-        self._isc_e_thresh = isc_e_thresh
-        self._max_hop = max_hop
-        self._sh_method = sh_method.upper()
+        # self._ic_e_thresh = ic_e_thresh
+        # self._isc_e_thresh = isc_e_thresh
+        # self._max_hop = max_hop
+        # self._sh_method = sh_method.upper()
 
         self._kinetic_energy = torch.tensor(0.0)
 
@@ -124,9 +121,15 @@ class TrajectoryPropagator:
         Propagates a trajectory by one step, by one snapshot.
 
         """
-        self._save_snapshot()
         self._shift(mode='NUCLEAR')
         self._nuclear()
+        self._logger.log_step(
+            coords=self._cur_coords,
+            velo=self._cur_velo,
+            forces=self._cur_forces,
+            energies=self._cur_energies,
+            state=self._cur_state,
+        )
         
         # TODO: state hopping
         # self._shift(mode='ELECTRONIC')
@@ -306,29 +309,6 @@ class TrajectoryPropagator:
             velo=self._cur_velo
         )
         NotImplemented()
-
-    def _save_snapshot(self) -> None:
-        """
-        Saves the current molecular system data to the running
-        history.
-
-        Args:
-            None
-
-        Returns:
-            None
-
-        """
-        snapshot = Snapshot(
-            iteration=self._iter,
-            state=self._cur_state,
-            atom_strings=self._atom_strings,
-            coords=self._cur_coords.clone().detach(),
-            velo=self._cur_velo.clone().detach(),
-            forces=self._cur_forces.clone().detach(),
-            energies=self._cur_energies.clone().detach()
-        )
-        snapshot.log(self._logger)
 
     def _shift(self, mode: str) -> None:
         """
