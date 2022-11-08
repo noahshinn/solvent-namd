@@ -20,3 +20,7 @@ def _parse_command_line(args=None):
 
     config = Config.from_file(args.config) # type: ignore
     return config
+
+
+if __name__ == '__main__':
+    main()
