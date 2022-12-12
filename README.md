@@ -47,12 +47,6 @@ To install:
   python setup.py develop
   ```
 
-To run demo:
-  ```
-  cd ./demo
-  python cyp_15_namd_demo.py
-  ```
-
 
 ## Authors
 * Noah Shinn
