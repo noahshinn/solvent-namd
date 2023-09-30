@@ -1,8 +1,3 @@
-"""
-STATUS: DEV
-
-"""
-
 import math
 import torch
 

@@ -1,8 +1,3 @@
-"""
-STATUS: SYNTAX PASS
-
-Next coordinate propagation
-https://en.wikipedia.org/wiki/Verlet_integration
 
 # optimizations:
     - replace loop with vmap

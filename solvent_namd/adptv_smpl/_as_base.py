@@ -1,8 +1,3 @@
-"""
-STATUS: DEV
-
-"""
-
 import abc
 from torch_geometric.data.data import Data
 

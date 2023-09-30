@@ -1,9 +1,4 @@
 """
-STATUS: DEV
-
-*move unit conversion elsewhere
-
-"""
 
 import torch
 

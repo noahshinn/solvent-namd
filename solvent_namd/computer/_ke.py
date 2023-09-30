@@ -1,8 +1,3 @@
-"""
-STATUS: SYNTAX PASS
-
-# optimizations:
-    - vmap or dimensional multiplication to avoid for loop
 
 """
 

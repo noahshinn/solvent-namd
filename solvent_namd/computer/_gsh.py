@@ -1,8 +1,3 @@
-"""
-STATUS: DEV
-
-Zhu-Nakamura Theory for generalized surface hopping.
-J. Chem. Phys. 102, 7448 (1995); https://doi.org/10.1063/1.469057
 
 Formulas given in supporting information below:
 http://www.rsc.org/suppdata/c8/cp/c8cp02651c/c8cp02651c1.pdf

@@ -1,8 +1,3 @@
-"""
-STATUS: DEV
-
-"""
-
 import torch
 from typing import NamedTuple, List, NewType
 

@@ -1,11 +1,3 @@
-"""
-STATUS: DEV
-
->> python cyp_15_namd_demo.py cyp-15-input.yml cyp-15-model.pt cyp-15-init-cond.pt cyp-15-one-hot.pt
-
-"""
-
-import sys
 import yaml
 import torch
 from pathlib import Path

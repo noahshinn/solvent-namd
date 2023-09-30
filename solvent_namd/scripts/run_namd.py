@@ -1,8 +1,3 @@
-"""
-STATUS: DEV
-
-"""
-
 import argparse
 from solvent_namd.namd import NAMD
 from solvent_namd.utils import Config

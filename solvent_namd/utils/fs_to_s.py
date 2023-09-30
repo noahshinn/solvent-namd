@@ -1,8 +1,3 @@
-"""
-STATUS: FINISHED
-
-"""
-
 import torch
 
 from typing import Union

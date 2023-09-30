@@ -1,9 +1,4 @@
 """
-STATUS: DEV
-
-# find better way to do this
-
-"""
 
 import torch
 

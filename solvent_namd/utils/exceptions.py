@@ -1,8 +1,3 @@
-"""
-STATUS: NOT TESTED
-
-"""
-
 
 class InvalidInputError(Exception):
     """

@@ -1,8 +1,3 @@
-"""
-STATUS: NOT TESTED
-
-"""
-
 from typing import NamedTuple, List
 
 
