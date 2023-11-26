@@ -45,10 +45,10 @@ pip install --pre torch torchvision torchaudio --extra-index-url https://downloa
 pip install joblib
 ```
 
-- Install [solvent](https://github.com/noahshinn024/solvent) from source:
+- Install [solvent](https://github.com/noahshinn/solvent) from source:
 
 ```bash
-git clone https://github.com/noahshinn024/solvent.git
+git clone https://github.com/noahshinn/solvent.git
 cd solvent
 python setup.py develop
 ```
@@ -56,7 +56,7 @@ python setup.py develop
 - Install solvent_namd from source by running:
 
 ```bash
-git clone https://github.com/noahshinn024/solvent-namd.git
+git clone https://github.com/noahshinn/solvent-namd.git
 cd solvent_namd
 python setup.py develop
 ```
