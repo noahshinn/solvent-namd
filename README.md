@@ -39,12 +39,6 @@ pip install torch --extra-index-url https://download.pytorch.org/whl/cu116
 pip install --pre torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/nightly/cu116
 ```
 
-- Install [joblib](https://joblib.readthedocs.io/en/latest/installing.html) for multiprocessing
-
-```bash
-pip install joblib
-```
-
 - Install [solvent](https://github.com/noahshinn/solvent) from source:
 
 ```bash
@@ -59,4 +53,10 @@ python setup.py develop
 git clone https://github.com/noahshinn/solvent-namd.git
 cd solvent_namd
 python setup.py develop
+```
+
+- Install the rest of the dependencies
+
+```bash
+pip install -r ./requirements.txt
 ```
